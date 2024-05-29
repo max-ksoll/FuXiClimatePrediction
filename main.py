@@ -6,6 +6,7 @@ import cdsapi
 from typing import List, Dict
 
 from src.Dataset import cds_utils
+from src.Dataset.zarr_utils import create_zarr_file
 from src.utils import log_exec_time, get_nc_files
 
 logging.basicConfig(level=logging.INFO)
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     start_year = 1958
     end_year = 1958
     data_dir = "/Users/ksoll/git/FuXiClimatePrediction/data"
-    # create_zarr_file(data_dir, start_year, end_year)
+    create_zarr_file(data_dir, start_year, end_year)
     paths = download_data(data_dir, start_year, end_year)
     convert_data(paths)
     # training

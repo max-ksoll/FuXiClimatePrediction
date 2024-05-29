@@ -5,6 +5,10 @@ import zarr
 from src.Dataset.dimensions import *
 
 
+def get_zarr_root() -> zarr.hierarchy.Group:
+    pass
+
+
 def create_zarr_file(directory: os.PathLike | str, start_year: int, end_year: int):
     store = zarr.DirectoryStore(os.path.join(directory, f'{start_year}_{end_year}.zarr'))
     root = zarr.group(store=store, overwrite=True)

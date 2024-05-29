@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
 
 import wandb
-from src.era5_dataset import ERA5Dataset, TimeMode
+from src.Dataset.era5_dataset import ERA5Dataset, TimeMode
 from src.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 

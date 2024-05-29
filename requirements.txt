@@ -11,3 +11,5 @@ cartopy
 xarray
 ipympl
 lightning
+cdsapi
+netcdf4

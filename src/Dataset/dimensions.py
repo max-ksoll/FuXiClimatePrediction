@@ -29,6 +29,13 @@ class Dimension(Enum):
     LEVEL = DimensionInfo('level', 5, np.float32, -99)
 
 
+class MeanDimension(Enum):
+    MIN = DimensionInfo('min', 1, np.float64, -99999)
+    MAX = DimensionInfo('max', 1, np.float64, -99999)
+    MEAN = DimensionInfo('mean', 1, np.float64, -99999)
+    STD = DimensionInfo('std', 1, np.float64, -99999)
+
+
 class Variable(Enum):
     V_WIND = VariableInfo("v_component_of_wind", False, "")
     U_WIND = VariableInfo("u_component_of_wind", False, "")

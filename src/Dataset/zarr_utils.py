@@ -5,14 +5,12 @@ import zarr
 from src.Dataset.dimensions import *
 
 
-def get_zarr_root() -> zarr.hierarchy.Group:
-    pass
-
-
-def create_zarr_file(directory: os.PathLike | str, start_year: int, end_year: int):
+def get_zarr_root(directory: os.PathLike | str, start_year: int, end_year: int) -> zarr.hierarchy.Group:
     store = zarr.DirectoryStore(os.path.join(directory, f'{start_year}_{end_year}.zarr'))
-    root = zarr.group(store=store, overwrite=True)
+    return zarr.group(store=store, overwrite=True)
 
+
+def create_zarr_file(root: zarr.hierarchy.Group):
     for dim in list(Dimension):
         create_dimension(root, dim)
 
@@ -42,4 +40,5 @@ def write_to_zarr(root: zarr.hierarchy.Group, var: Variable, data: np.ndarray):
 
 
 if __name__ == '__main__':
-    create_zarr_file("/Users/ksoll/git/FuXiClimatePrediction/data", 1958, 1958)
+    root = get_zarr_root("/Users/ksoll/git/FuXiClimatePrediction/data", 1958, 1958)
+    create_zarr_file(root)

@@ -6,7 +6,7 @@ import cdsapi
 from typing import List, Dict
 
 from src.Dataset import cds_utils
-from src.Dataset.zarr_utils import create_zarr_file
+from src.Dataset.zarr_utils import create_zarr_file, get_zarr_root
 from src.utils import log_exec_time, get_nc_files
 
 logging.basicConfig(level=logging.INFO)
@@ -43,14 +43,15 @@ def convert_data(paths: Dict[str, List[os.PathLike | str]]):
             if key == 'ORAS':
                 ds = xr.open_dataset(path)
                 print(ds)
-                return
+                # return
 
 
 if __name__ == '__main__':
     start_year = 1958
     end_year = 1958
     data_dir = "/Users/ksoll/git/FuXiClimatePrediction/data"
-    create_zarr_file(data_dir, start_year, end_year)
+    root = get_zarr_root(data_dir, start_year, end_year)
+    create_zarr_file(root)
     paths = download_data(data_dir, start_year, end_year)
     convert_data(paths)
     # training

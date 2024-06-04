@@ -43,3 +43,12 @@ def get_date_strings(start_year: int, end_year: int) -> Tuple[List[str], List[in
         date = '/'.join([f'{year}{month:02d}01' for year in range(sy, ey) for month in range(1, 2)])
         date_strings.append(date)
     return date_strings, decades
+
+
+def get_years_as_strings(start_year: int, end_year: int) -> List[str]:
+    return [str(year) for year in range(start_year, end_year + 1)]
+
+
+def get_month_as_strings(start_year: int, end_year: int) -> List[str]:
+    # return [f'{m:02d}' for m in range(1, 13)]
+    return [f'{m:02d}' for m in range(1, 2)]

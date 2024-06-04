@@ -6,18 +6,9 @@ from tqdm import tqdm
 import cdsapi
 
 from src import utils
-from src.utils import log_exec_time, get_nc_files
+from src.utils import log_exec_time, get_nc_files, get_month_as_strings, get_years_as_strings
 
 logger = logging.getLogger(__name__)
-
-
-def get_years_as_strings(start_year: int, end_year: int) -> List[str]:
-    return [str(year) for year in range(start_year, end_year + 1)]
-
-
-def get_month_as_strings(start_year: int, end_year: int) -> List[str]:
-    # return [f'{m:02d}' for m in range(1, 13)]
-    return [f'{m:02d}' for m in range(1, 2)]
 
 
 @log_exec_time

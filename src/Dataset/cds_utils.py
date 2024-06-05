@@ -6,6 +6,7 @@ from tqdm import tqdm
 import cdsapi
 
 from src import utils
+from src.Dataset.dimensions import Variable
 from src.utils import log_exec_time, get_nc_files, get_month_as_strings, get_years_as_strings
 
 logger = logging.getLogger(__name__)
@@ -99,18 +100,18 @@ def download_oras_data(cds_client: cdsapi.api.Client, directory: os.PathLike | s
         zip_ref.extractall(directory)
     os.remove(file_path)
     after = get_nc_files(directory)
-    return list(after - before)
+    return list(map(lambda x: os.path.join(directory, x), list(after - before)))
 
 
-def map_nc_files(ds_download_path: os.PathLike | str) -> Dict[str, List[str]]:
+def map_nc_files(ds_download_path: os.PathLike | str) -> Dict[Variable, List[str]]:
     nc_files = set(map(lambda x: os.path.join(ds_download_path, x), get_nc_files(ds_download_path)))
     era_atmos_paths = set(filter(lambda f: 'atmos' in f, nc_files))
     era_surface_paths = set(filter(lambda f: 'surface' in f, nc_files))
     oras_paths = nc_files - era_atmos_paths - era_surface_paths
     return {
-        'ORAS': list(oras_paths),
-        'ERA5SURFACE': list(era_surface_paths),
-        'ERA5ATMOS': list(era_atmos_paths)
+        Variable.ORAS: list(oras_paths),
+        Variable.ERA5SURFACE: list(era_surface_paths),
+        Variable.ERA5ATMOS: list(era_atmos_paths)
     }
 
 
@@ -119,6 +120,6 @@ if __name__ == '__main__':
 
     download_era5_surface_data(
         cds_client,
-        "/Users/ksoll/git/FuXiClimatePrediction/data/sy_1958__ey_1958",
+        "/data/sy_1958__ey_1958__tmp",
         0, 0
     )

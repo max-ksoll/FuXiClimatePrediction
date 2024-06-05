@@ -19,13 +19,13 @@ def log_exec_time(func: Callable):
 
 
 def get_nc_files(directory: os.PathLike | str) -> Set[str]:
+    if not os.path.exists(directory):
+        return {}
     return {f for f in os.listdir(directory) if f.endswith('.nc')}
 
 
 def get_decades(start: int, end: int) -> List[int]:
     decades = (((end // 10) * 10) - ((start // 10) * 10)) // 10 + 1
-    print((end // 10) * 10)
-    print((start // 10) * 10)
     starting_decade = (start // 10) * 10
     return [starting_decade + 10 * i for i in range(decades)]
 
@@ -50,5 +50,4 @@ def get_years_as_strings(start_year: int, end_year: int) -> List[str]:
 
 
 def get_month_as_strings(start_year: int, end_year: int) -> List[str]:
-    # return [f'{m:02d}' for m in range(1, 13)]
-    return [f'{m:02d}' for m in range(1, 2)]
+    return [f'{m:02d}' for m in range(1, 13)]

@@ -29,9 +29,9 @@ class ReanalysisDimensionInfo(DimensionInfo):
 
 
 class Dimension(Enum):
-    LAT = ReanalysisDimensionInfo('latitude', 121, np.float64, -99999, "nav_lat", "latitude")
-    LON = ReanalysisDimensionInfo('longitude', 240, np.float64, -99999, "nav_lon", "longitude")
-    TIME = ReanalysisDimensionInfo('time', 1, np.float64, -99999, "time_counter", "time")
+    LAT = ReanalysisDimensionInfo('latitude', 121, np.float64, -99999, "y", "latitude")
+    LON = ReanalysisDimensionInfo('longitude', 240, np.float64, -99999, "x", "longitude")
+    TIME = ReanalysisDimensionInfo('time', 12, np.float64, -99999, "time_counter", "time")
     LEVEL = ReanalysisDimensionInfo('level', 5, np.float32, -99, "", "level")
 
 
@@ -42,12 +42,20 @@ class MeanDimension(Enum):
     STD = DimensionInfo('std', 1, np.float64, -99999)
 
 
-class Variable(Enum):
+class ORASVariable(Enum):
+    COMPLETE_OCEAN_HEAT_CONTENT = VariableInfo("ocean_heat_content_for_the_total_water_column", True, "sohtcbtm")
+    OCEAN_HEAT_CONTENT_300M = VariableInfo("ocean_heat_content_for_the_upper_300m", True, "sohtc300")
+
+
+class ERAATMOSVariable(Enum):
     V_WIND = VariableInfo("v_component_of_wind", False, "v")
     U_WIND = VariableInfo("u_component_of_wind", False, "u")
     TEMP = VariableInfo("temperature", False, "t")
     HUMIDITY = VariableInfo("specific_humidity", False, "z")
     GEOPOTENTIAL = VariableInfo("geopotential", False, "q")
+
+
+class ERASURFACEVariable(Enum):
     V_WIND_10M = VariableInfo("10m_v_component_of_wind", True, "u10")
     U_WIND_10M = VariableInfo("10m_u_component_of_wind", True, "v10")
     SURFACE_TEMP = VariableInfo("2m_temperature", True, "t2m")
@@ -56,5 +64,9 @@ class Variable(Enum):
     HEAT_FLUX = VariableInfo("surface_latent_heat_flux", True, "slhf")
     TOTAL_PRECIPITATION = VariableInfo("total_precipitation", True, "tp")
     VOL_SOIL_WATER_LV2 = VariableInfo("volumetric_soil_water_layer_2", True, "swvl2")
-    COMPLETE_OCEAN_HEAT_CONTENT = VariableInfo("ocean_heat_content_for_the_total_water_column", True, "sohtcbtm")
-    OCEAN_HEAT_CONTENT_300M = VariableInfo("ocean_heat_content_for_the_upper_300m", True, "sohtc300")
+
+
+class Variable(Enum):
+    ORAS = ORASVariable
+    ERA5SURFACE = ERASURFACEVariable
+    ERA5ATMOS = ERAATMOSVariable

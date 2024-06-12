@@ -54,6 +54,10 @@ class FuXi(torch.nn.Module):
             out = self.forward(model_input)
             if return_out:
                 outputs.append(out.detach().cpu())
+            # TODO hier muss beachtet werden, dass es für ORAS auch NaN Werte auf den Kontinenten gibt
+            # ungefähr so
+            # mask = torch.isnan( target)
+            # loss = mse( target[mask], pred[mask])
             loss += torch.nn.functional.l1_loss(out * lat_weights, timeseries[:, step + 2, :, :, :] * lat_weights)
 
         if return_out:

@@ -70,6 +70,8 @@ def convert_data(root: zarr.hierarchy.Group, paths: Dict[Variable, List[os.PathL
             if key == Variable.ORAS:
                 variable_name = str(path).split('/')[-1].split('_')[0]
                 variable = list(filter(lambda x: x.value.cdf_name == variable_name, list(ORASVariable)))[0]
+                # TODO diese Funktion muss noch komplett angepasst werden
+                # Die Daten sollen lediglich herunterskaliert werden und nicht die NaN Werte interpoliert
                 variable_data = interpolate_oras(ds, variable.value)
                 root[variable.value.name].append(variable_data)
             if key == Variable.ERA5ATMOS:
@@ -80,6 +82,7 @@ def convert_data(root: zarr.hierarchy.Group, paths: Dict[Variable, List[os.PathL
                     for year in range(start_year, end_year + 1):
                         for month in range(1, 13):
                             vals = ds[variable.value.cdf_name].sel(time=f'{year}-{month}')
+                            # TODO hier muss noch über die Zeitachse gemeant werden
                             root[variable.value.name].append(vals.values)
 
 
@@ -90,5 +93,7 @@ if __name__ == '__main__':
     root = get_zarr_root(data_dir, start_year, end_year)
     create_zarr_file(root)
     paths = download_data(data_dir, start_year, end_year)
+    # TODO entweder in dieser oder in einer anderen Funktion müssen noch die min, max, mean, std Werte berechnet werden
+    # vlt gibts da ja auch ne funktion von xarray
     convert_data(root, paths, start_year, end_year)
     # training

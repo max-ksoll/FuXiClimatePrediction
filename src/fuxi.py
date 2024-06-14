@@ -18,6 +18,7 @@ class FuXi(torch.nn.Module):
         logger.info("Creating FuXi Model")
         self.space_time_cube_embedding = SpaceTimeCubeEmbedding(input_var, channels)
         self.u_transformer = UTransformer(transformer_block_count, channels, heads)
+        # TODO durch einen Linear ersetzen anstatt Linear pro Channel
         self.fc = torch.nn.Sequential(
             # put channel dim front
             Permute([0, 2, 3, 1]),
@@ -124,6 +125,7 @@ class DownBlock(nn.Module):
     def forward(self, x):
         out = self.conv1(x)
         residual = self.residual_block(out)
+        # TODO durch concat ersetzen
         out = out + residual
         return out
 
@@ -142,6 +144,7 @@ class UpBlock(nn.Module):
         x = torch.cat([x, skip_connection], dim=1)
         x = self.upsample(x)
         # x = self.adjust_channels(x)
+        # TODO durch concat ersetzen
         residual = self.residual_block(x)
         x = x + residual
         return x

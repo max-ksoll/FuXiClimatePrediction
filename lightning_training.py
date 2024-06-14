@@ -98,6 +98,7 @@ def train():
         checkpoint_callback = ModelCheckpoint(dirpath=os.environ.get('MODEL_DIR', './models'),
                                               save_on_train_epoch_end=True,
                                               save_top_k=-1)
+        # TODO Automagisierte Parallelisierung implementieren
         trainer = L.Trainer(
             accelerator=device,
             logger=wandb_logger,

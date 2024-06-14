@@ -1,3 +1,5 @@
+# TODO main.py -> download_data.py oder so umbenennen
+
 import logging
 import os
 import shutil
@@ -96,4 +98,3 @@ if __name__ == '__main__':
     # TODO entweder in dieser oder in einer anderen Funktion müssen noch die min, max, mean, std Werte berechnet werden
     # vlt gibts da ja auch ne funktion von xarray
     convert_data(root, paths, start_year, end_year)
-    # training

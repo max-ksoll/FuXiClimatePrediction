@@ -47,7 +47,7 @@ def create_var(root: zarr.hierarchy.Group, var: VariableInfo):
     level_cnt = Dimension.LEVEL.value.size
     lat_cnt = Dimension.LAT.value.size
     lon_cnt = Dimension.LON.value.size
-
+    # TODO chunk größen überdenken Dataloading
     if var.isSurfaceVar:
         variable = root.create_dataset(var.name, shape=(0, lat_cnt, lon_cnt), dtype=np.float64,
                                        chunks=(12, lat_cnt, lon_cnt), fill_value=-99999)

@@ -40,7 +40,7 @@ def get_date_strings(start_year: int, end_year: int) -> Tuple[List[str], List[in
             sy = start_year
         if end_year < ey:
             ey = end_year + 1
-        date = '/'.join([f'{year}{month:02d}01' for year in range(sy, ey) for month in range(1, 2)])
+        date = '/'.join([f'{year}{month:02d}01' for year in range(sy, ey) for month in range(1, 13)])
         date_strings.append(date)
     return date_strings, decades
 

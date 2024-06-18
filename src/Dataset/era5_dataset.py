@@ -1,4 +1,6 @@
-import enum
+import os
+from typing import Tuple
+
 import os
 from typing import Tuple
 
@@ -7,7 +9,7 @@ import torch
 import zarr
 from torch.utils.data import Dataset
 
-from src.Dataset.dimensions import Variable, Dimension, MeanDimension
+from src.Dataset.dimensions import Dimension, VARIABLES
 
 
 class ERA5Dataset(Dataset):
@@ -32,24 +34,22 @@ class ERA5Dataset(Dataset):
             self.idxs = self.idxs[keep_idxs]
         self.len = self.idxs.shape[0]
 
-        self.surface_vars = list(filter(lambda x: x.value.isSurfaceVar, list(Variable)))
-        self.atmos_vars = list(filter(lambda x: not x.value.isSurfaceVar, list(Variable)))
+        self.surface_vars = list(filter(lambda x: x.value.isSurfaceVar, list(VARIABLES)))
+        self.atmos_vars = list(filter(lambda x: not x.value.isSurfaceVar, list(VARIABLES)))
         self.lat_weights = self.get_latitude_weights()[:, None]
 
         self.init_max_min()
 
     def init_max_min(self):
-        self.min = torch.stack([
-            torch.stack([torch.tensor(np.array(self.sources[var][MeanDimension.MIN.value.name]))
-                         for var in self.surface_vars], 1),
-            torch.stack([torch.tensor(np.array(self.sources[var][MeanDimension.MIN.value.name]))
+        self.min = torch.cat([
+            torch.stack([torch.tensor(np.array(self.means[var.value.name][:, 0])) for var in self.surface_vars], 1),
+            torch.stack([torch.tensor(np.array(self.means[var.value.name][:, :, 0]))
                          for var in self.atmos_vars], 1).flatten(start_dim=1, end_dim=2)
         ], dim=1)
 
-        max_val = torch.stack([
-            torch.stack([torch.tensor(np.array(self.sources[var][MeanDimension.MAX.value.name]))
-                         for var in self.surface_vars], 1),
-            torch.stack([torch.tensor(np.array(self.sources[var][MeanDimension.MAX.value.name]))
+        max_val = torch.cat([
+            torch.stack([torch.tensor(np.array(self.means[var.value.name][:, 1])) for var in self.surface_vars], 1),
+            torch.stack([torch.tensor(np.array(self.means[var.value.name][:, :, 1]))
                          for var in self.atmos_vars], 1).flatten(start_dim=1, end_dim=2)
         ], dim=1)
 
@@ -72,7 +72,7 @@ class ERA5Dataset(Dataset):
         return sources, self.lat_weights
 
     def get_at_idx(self, idx_t: int) -> torch.Tensor:
-        return torch.stack([
+        return torch.cat([
             torch.stack([torch.tensor(np.array(self.sources[var][idx_t])) for var in self.surface_vars], 1),
             torch.stack([torch.tensor(np.array(self.sources[var][idx_t])) for var in self.atmos_vars], 1).flatten(
                 start_dim=1, end_dim=2)

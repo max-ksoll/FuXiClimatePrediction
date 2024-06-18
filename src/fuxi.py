@@ -57,9 +57,9 @@ class FuXi(torch.nn.Module):
 
             # Maske für die aktuelle Zeitschritt anwenden
             step_mask = mask[:, step + 2, :, :, :]
-            loss += torch.nn.functional.l1_loss(out * lat_weights * step_mask,
-                                                timeseries[:, step + 2, :, :, :] * lat_weights * step_mask,
-                                                reduction='sum') / step_mask.sum()
+            loss += torch.sum(
+                torch.abs(timeseries[:, step + 2, :, :, :] - out) * lat_weights * step_mask
+            ) / step_mask.sum()
 
         if return_out:
             outputs = torch.stack(outputs, 1)

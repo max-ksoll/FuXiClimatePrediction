@@ -1,7 +1,7 @@
 import logging
 import os
 import zipfile
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from tqdm import tqdm
 import cdsapi
 

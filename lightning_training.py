@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
 
 import wandb
-from src.Dataset.era5_dataset import ERA5Dataset, TimeMode
+from src.Dataset.era5_dataset import ERA5Dataset
 from src.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 
@@ -28,20 +28,14 @@ def create_train_test_datasets(batch_size, max_autoregression_steps) -> Tuple[Da
     logger.info('Creating Dataset')
     col_names = os.environ.get('COL_NAMES', 'lessig')
     train_ds = ERA5Dataset(
-        os.environ.get('DATAFOLDER'),
-        TimeMode.BETWEEN,
-        start_time="1979-01-01T00:00:00",
-        end_time="2019-12-31T18:00:00",
-        max_autoregression_steps=max_autoregression_steps,
-        zarr_col_names=col_names
+        dataset_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
+        means_file="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr"
     )
+    # TODO Test DS File muss erstellt und hier geladen werden
+    # TODO dafür muss die Zeit Dim noch berichtigt werden
     test_ds = ERA5Dataset(
-        os.environ.get('DATAFOLDER'),
-        TimeMode.BETWEEN,
-        start_time="2020-01-01T00:00:00",
-        end_time="2020-12-31T18:00:00",
-        max_autoregression_steps=max_autoregression_steps,
-        zarr_col_names=col_names
+        dataset_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
+        means_file="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr"
     )
     train_loader_params = {
         'batch_size': batch_size,
@@ -76,6 +70,7 @@ def train():
         logger.info('Loading Clima Mean')
         clima_mean_dir = dotenv.dotenv_values().get('CLIMA_MEAN_DIR', "")
         clima_mean = None
+        # TODO Der Klima mean muss jetzt einfach über den mean zarr file gebaut werden
         if os.path.exists(clima_mean_dir):
             # Shape (vars x lats x longs)
             clima_mean = torch.flatten(torch.stack([
@@ -92,7 +87,7 @@ def train():
         transformer_heads = config.get('model_parameter')['heads']
         lr = config.get("init_learning_rate")
 
-        model = FuXi(25, channels, transformer_blocks, transformer_heads, lr, clima_mean)
+        model = FuXi(35, channels, transformer_blocks, transformer_heads, lr, clima_mean)
         wandb_logger = WandbLogger(id=run.id, resume='allow')
         wandb_logger.watch(model, log_freq=100)
         checkpoint_callback = ModelCheckpoint(dirpath=os.environ.get('MODEL_DIR', './models'),

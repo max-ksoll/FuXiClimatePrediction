@@ -54,6 +54,8 @@ class ERA5Dataset(Dataset):
         ], dim=1)
 
         self.max_minus_min = max_val - self.min
+        self.min = self.min[0, :, None, None]
+        self.max_minus_min = self.max_minus_min[0, :, None, None]
 
     def get_latitude_weights(self):
         weights = np.cos(np.deg2rad(np.array(self.sources[Dimension.LAT.value.name])))
@@ -73,7 +75,7 @@ class ERA5Dataset(Dataset):
 
     def get_at_idx(self, idx_t: int) -> torch.Tensor:
         return torch.cat([
-            torch.stack([torch.tensor(np.array(self.sources[var][idx_t])) for var in self.surface_vars], 1),
-            torch.stack([torch.tensor(np.array(self.sources[var][idx_t])) for var in self.atmos_vars], 1).flatten(
-                start_dim=1, end_dim=2)
-        ], dim=1)
+            torch.stack([torch.tensor(np.array(self.sources[var.value.name][idx_t])) for var in self.surface_vars], 0),
+            torch.stack([torch.tensor(np.array(self.sources[var.value.name][idx_t])) for var in self.atmos_vars],
+                        0).flatten(start_dim=0, end_dim=1)
+        ], dim=0)

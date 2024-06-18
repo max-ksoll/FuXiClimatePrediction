@@ -34,11 +34,11 @@ def create_mean_variable(root, var):
     metrics_cnt = Dimension.METRICS.value.size
 
     if var.isSurfaceVar:
-        variable = root.create_dataset(var.name, shape=(0, metrics_cnt), dtype=np.float64,
+        variable = root.create_dataset(var.name, shape=(0, metrics_cnt), dtype=np.float32,
                                        chunks=(1, metrics_cnt), fill_value=-99999)
         variable.attrs['_ARRAY_DIMENSIONS'] = MEAN_SURFACE_VAR_ATTRIBUTE
     else:
-        variable = root.create_dataset(var.name, shape=(0, level_cnt, metrics_cnt), dtype=np.float64,
+        variable = root.create_dataset(var.name, shape=(0, level_cnt, metrics_cnt), dtype=np.float32,
                                        chunks=(1, level_cnt, metrics_cnt), fill_value=-99999)
         variable.attrs['_ARRAY_DIMENSIONS'] = MEAN_LEVEL_VAR_ATTRIBUTE
 
@@ -49,11 +49,11 @@ def create_var(root: zarr.hierarchy.Group, var: VariableInfo):
     lon_cnt = Dimension.LON.value.size
     # TODO chunk größen überdenken Dataloading
     if var.isSurfaceVar:
-        variable = root.create_dataset(var.name, shape=(0, lat_cnt, lon_cnt), dtype=np.float64,
+        variable = root.create_dataset(var.name, shape=(0, lat_cnt, lon_cnt), dtype=np.float32,
                                        chunks=(12, lat_cnt, lon_cnt), fill_value=-99999)
         variable.attrs['_ARRAY_DIMENSIONS'] = SURFACE_VAR_ATTRIBUTE
     else:
-        variable = root.create_dataset(var.name, shape=(0, level_cnt, lat_cnt, lon_cnt), dtype=np.float64,
+        variable = root.create_dataset(var.name, shape=(0, level_cnt, lat_cnt, lon_cnt), dtype=np.float32,
                                        chunks=(12, level_cnt, lat_cnt, lon_cnt), fill_value=-99999)
         variable.attrs['_ARRAY_DIMENSIONS'] = LEVEL_VAR_ATTRIBUTE
 

@@ -4,6 +4,7 @@ Functions for evaluating forecasts.
 import numpy as np
 import xarray as xr
 
+# TODO implement nan mask here
 
 def compute_weighted_rmse(da_fc, da_true, weights_lat, mean_dims=xr.ALL_DIMS):
     """

@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
 
 import wandb
-from src.era5_dataset import ERA5Dataset, TimeMode
+from src.Dataset.era5_dataset import ERA5Dataset, TimeMode
 from src.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 
@@ -98,6 +98,7 @@ def train():
         checkpoint_callback = ModelCheckpoint(dirpath=os.environ.get('MODEL_DIR', './models'),
                                               save_on_train_epoch_end=True,
                                               save_top_k=-1)
+        # TODO Automagisierte Parallelisierung implementieren
         trainer = L.Trainer(
             accelerator=device,
             logger=wandb_logger,

@@ -1,23 +1,20 @@
-from typing import Tuple, Union
-
 import torch
 from torchvision.models.swin_transformer import SwinTransformerBlockV2
 from torch import nn
 import logging
-
 from torchvision.ops import Permute
+from typing import Tuple, Union
 
 logger = logging.getLogger(__name__)
 
 
 class FuXi(torch.nn.Module):
-    def __init__(
-            self, input_var, channels, transformer_block_count, lat, long, heads=8
-    ):
+    def __init__(self, input_var, channels, transformer_block_count, lat, long, heads=8):
         super(FuXi, self).__init__()
         logger.info("Creating FuXi Model")
         self.space_time_cube_embedding = SpaceTimeCubeEmbedding(input_var, channels)
         self.u_transformer = UTransformer(transformer_block_count, channels, heads)
+        # TODO durch einen Linear ersetzen anstatt Linear pro Channel
         self.fc = torch.nn.Sequential(
             # put channel dim front
             Permute([0, 2, 3, 1]),
@@ -38,23 +35,31 @@ class FuXi(torch.nn.Module):
         x = self.u_transformer(x)
         return self.fc(x)
 
-    def step(self, timeseries, lat_weights, autoregression_steps=1, return_out=False) -> Union[torch.Tensor, Tuple[
-        torch.Tensor, torch.Tensor]]:
-
+    def step(self, timeseries, lat_weights, autoregression_steps=1, return_out=False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if autoregression_steps > timeseries.shape[1] - 2:
-            raise ValueError('autoregression_steps cant be greater than number of samples')
+            raise ValueError('autoregression_steps can\'t be greater than number of samples')
+
+        # NaN-Werte durch 0 ersetzen und eine Maske erstellen
+        mask = ~torch.isnan(timeseries)
+        timeseries = torch.nan_to_num(timeseries, nan=0.0)
 
         outputs = []
-
         loss = torch.Tensor([0]).to(timeseries.device)
         model_input = timeseries[:, 0:2, :, :, :]
+
         for step in range(autoregression_steps):
             if step > 0:
                 model_input = torch.stack([model_input[:, 1, :, :, :], out], dim=1)
             out = self.forward(model_input)
             if return_out:
                 outputs.append(out.detach().cpu())
-            loss += torch.nn.functional.l1_loss(out * lat_weights, timeseries[:, step + 2, :, :, :] * lat_weights)
+
+            # Maske für die aktuelle Zeitschritt anwenden
+            step_mask = mask[:, step + 2, :, :, :]
+            loss += torch.sum(
+                torch.abs(timeseries[:, step + 2, :, :, :] - out) * lat_weights * step_mask
+            ) / step_mask.sum()
 
         if return_out:
             outputs = torch.stack(outputs, 1)
@@ -116,11 +121,13 @@ class DownBlock(nn.Module):
         )
         self.residual_block = ResidualBlock(out_channels)
         self.layers = torch.nn.ModuleList([self.conv1, self.residual_block])
+        self.conv_adjust = nn.Conv2d(out_channels * 2, out_channels, kernel_size=1)
 
     def forward(self, x):
         out = self.conv1(x)
         residual = self.residual_block(out)
-        out = out + residual
+        out = torch.cat((out, residual), dim=1)
+        out = self.conv_adjust(out)
         return out
 
 
@@ -133,13 +140,13 @@ class UpBlock(nn.Module):
         )
         self.residual_block = ResidualBlock(out_channels)
         self.layers = torch.nn.ModuleList([self.upsample, self.residual_block])
+        self.conv_adjust = nn.Conv2d(out_channels * 2, out_channels, kernel_size=1)
 
     def forward(self, x, skip_connection):
         x = torch.cat([x, skip_connection], dim=1)
         x = self.upsample(x)
-        # x = self.adjust_channels(x)
-        residual = self.residual_block(x)
-        x = x + residual
+        x = torch.cat([x, self.residual_block(x)], dim=1)
+        x = self.conv_adjust(x)
         return x
 
 

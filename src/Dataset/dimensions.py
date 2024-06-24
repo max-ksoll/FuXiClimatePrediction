@@ -5,21 +5,30 @@ from typing import TypeVar, Generic, Optional, List
 import numpy as np
 
 LEVEL_VAR_ATTRIBUTE = ['time', 'level', 'latitude', 'longitude']
-MEAN_LEVEL_VAR_ATTRIBUTE = ['time', 'level', 'metric']
+MEAN_LEVEL_VAR_ATTRIBUTE = ['metric', 'level']
 SURFACE_VAR_ATTRIBUTE = ['time', 'latitude', 'longitude']
-MEAN_SURFACE_VAR_ATTRIBUTE = ['time', 'metric']
+MEAN_SURFACE_VAR_ATTRIBUTE = ['metric']
+
+TIME_DIMENSION_NAME = 'time'
 
 T = TypeVar("T")
 
 
+class VariableType(Enum):
+    ORAS = 0
+    ERA_SURFACE = 1
+    ERA_ATMOS = 2
+
+
 @dataclasses.dataclass
-class VariableInfo:
+class Variable:
     name: str
     isSurfaceVar: bool
     cdf_name: str
+    var_type: VariableType
 
 
-class DimensionInfo(Generic[T]):
+class Dimension(Generic[T]):
 
     def __init__(self, name: str, size: int, fill_value: T, min_val: T = None, max_val: T = None,
                  oras_name: str = "", era_name: str = "", values: List[T] = None):
@@ -44,58 +53,43 @@ class DimensionInfo(Generic[T]):
             raise ValueError("Either 'values' or both 'min_val' and 'max_val' must be set to iterate.")
 
 
-class Dimension(Enum):
-    LAT = DimensionInfo[np.float64]('latitude', 121, -99999, min_val=-90, max_val=90,
-                                    oras_name="y", era_name="latitude")
-    LON = DimensionInfo[np.float64]('longitude', 240, -99999, min_val=0, max_val=358.5,
-                                    oras_name="x", era_name="longitude")
-    # TODO hier muss noch irgendwie gelöst werden, dass man nicht händisch die menge der Zeitschritte ändern muss
-    TIME = DimensionInfo[np.float64]('time', 12, -99999, min_val=0, max_val=11,
-                                     oras_name="time_counter", era_name="time")
-    LEVEL = DimensionInfo[np.float32]('level', 5, -99, min_val=0, max_val=4, era_name="level")
+LAT = Dimension[np.float64]('latitude', 121, -99999, min_val=-90, max_val=90, oras_name="y", era_name="latitude")
+LON = Dimension[np.float64]('longitude', 240, -99999, min_val=0, max_val=358.5, oras_name="x", era_name="longitude")
+LEVEL = Dimension[np.float32]('level', 5, -99, min_val=0, max_val=4, era_name="level")
+# Die Reihenfolge der Values darf nicht geändert werden
+METRICS = Dimension[np.string_]('metric', 4, "", values=['min', 'max', 'mean', 'std'])
 
-    # Ich glaube hier darf die reihenfolge nicht geändert werden von den Werte in values
-    METRICS = DimensionInfo[np.string_]('metric', 4, "", values=['min', 'max', 'mean', 'std'])
+# ORAS
+COMPLETE_OCEAN_HEAT_CONTENT = Variable("ocean_heat_content_for_the_total_water_column", True, "sohtcbtm",
+                                       VariableType.ORAS)
+OCEAN_HEAT_CONTENT_300M = Variable("ocean_heat_content_for_the_upper_300m", True, "sohtc300", VariableType.ORAS)
 
-    # TODO das hier ist jetzt nicht die schönste Lösung, aber mir fällt auf Anhieb gerade nicht ein wie ich es besser
-    # TODO machen kann, deswegen mache ich es erstmal so.
-    METRICS_TIME = DimensionInfo[np.float64]('time', 1, -99999, min_val=0, max_val=1,
-                                             oras_name="time_counter", era_name="time")
+# ERA Surface
+V_WIND_10M = Variable("10m_v_component_of_wind", True, "u10", VariableType.ERA_SURFACE)
+U_WIND_10M = Variable("10m_u_component_of_wind", True, "v10", VariableType.ERA_SURFACE)
+SURFACE_TEMP = Variable("2m_temperature", True, "t2m", VariableType.ERA_SURFACE)
+SEA_SURFACE_TEMP = Variable("sea_surface_temperature", True, "sst", VariableType.ERA_SURFACE)
+SOIL_TEMP_LV1 = Variable("soil_temperature_level_1", True, "stl1", VariableType.ERA_SURFACE)
+HEAT_FLUX = Variable("surface_latent_heat_flux", True, "slhf", VariableType.ERA_SURFACE)
+TOTAL_PRECIPITATION = Variable("total_precipitation", True, "tp", VariableType.ERA_SURFACE)
+VOL_SOIL_WATER_LV2 = Variable("volumetric_soil_water_layer_2", True, "swvl2", VariableType.ERA_SURFACE)
 
+# ERA Atmos
+V_WIND = Variable("v_component_of_wind", False, "v", VariableType.ERA_ATMOS)
+U_WIND = Variable("u_component_of_wind", False, "u", VariableType.ERA_ATMOS)
+TEMP = Variable("temperature", False, "t", VariableType.ERA_ATMOS)
+HUMIDITY = Variable("specific_humidity", False, "z", VariableType.ERA_ATMOS)
+GEOPOTENTIAL = Variable("geopotential", False, "q", VariableType.ERA_ATMOS)
 
-class Variable(Enum):
-    pass
+ORAS_VARIABLES = [
+    COMPLETE_OCEAN_HEAT_CONTENT, OCEAN_HEAT_CONTENT_300M
+]
 
+ERA_SURFACE_VARIABLES = [
+    V_WIND_10M, U_WIND_10M, SURFACE_TEMP, SEA_SURFACE_TEMP, SOIL_TEMP_LV1, HEAT_FLUX, TOTAL_PRECIPITATION,
+    VOL_SOIL_WATER_LV2
+]
 
-class ORASVariable(Variable):
-    COMPLETE_OCEAN_HEAT_CONTENT = VariableInfo("ocean_heat_content_for_the_total_water_column", True, "sohtcbtm")
-    OCEAN_HEAT_CONTENT_300M = VariableInfo("ocean_heat_content_for_the_upper_300m", True, "sohtc300")
-
-
-class ERAATMOSVariable(Variable):
-    V_WIND = VariableInfo("v_component_of_wind", False, "v")
-    U_WIND = VariableInfo("u_component_of_wind", False, "u")
-    TEMP = VariableInfo("temperature", False, "t")
-    HUMIDITY = VariableInfo("specific_humidity", False, "z")
-    GEOPOTENTIAL = VariableInfo("geopotential", False, "q")
-
-
-class ERASURFACEVariable(Variable):
-    V_WIND_10M = VariableInfo("10m_v_component_of_wind", True, "u10")
-    U_WIND_10M = VariableInfo("10m_u_component_of_wind", True, "v10")
-    SURFACE_TEMP = VariableInfo("2m_temperature", True, "t2m")
-    SEA_SURFACE_TEMP = VariableInfo("sea_surface_temperature", True, "sst")
-    SOIL_TEMP_LV1 = VariableInfo("soil_temperature_level_1", True, "stl1")
-    HEAT_FLUX = VariableInfo("surface_latent_heat_flux", True, "slhf")
-    TOTAL_PRECIPITATION = VariableInfo("total_precipitation", True, "tp")
-    VOL_SOIL_WATER_LV2 = VariableInfo("volumetric_soil_water_layer_2", True, "swvl2")
-
-
-VariableDict = {
-    'ORAS': ORASVariable,
-    'ERA5SURFACE': ERASURFACEVariable,
-    'ERA5ATMOS': ERAATMOSVariable,
-}
-VARIABLES = []
-for variable in VariableDict.values():
-    VARIABLES.extend(list(variable))
+ERA_ATMOS_VARIABLES = [
+    V_WIND, U_WIND, TEMP, HUMIDITY, GEOPOTENTIAL
+]

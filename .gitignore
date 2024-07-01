@@ -172,5 +172,6 @@ src/wandb/
 /notebooks/wandb/
 /notebooks/preds.zarr/
 figures
+data-viz
 
 bin/

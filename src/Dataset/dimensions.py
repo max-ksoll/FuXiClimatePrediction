@@ -4,10 +4,10 @@ from typing import TypeVar, Generic, Optional, List
 
 import numpy as np
 
-LEVEL_VAR_ATTRIBUTE = ['time', 'level', 'latitude', 'longitude']
-MEAN_LEVEL_VAR_ATTRIBUTE = ['time', 'level', 'metric']
-SURFACE_VAR_ATTRIBUTE = ['time', 'latitude', 'longitude']
-MEAN_SURFACE_VAR_ATTRIBUTE = ['time', 'metric']
+LEVEL_VAR_ATTRIBUTE = ["time", "level", "latitude", "longitude"]
+MEAN_LEVEL_VAR_ATTRIBUTE = ["time", "level", "metric"]
+SURFACE_VAR_ATTRIBUTE = ["time", "latitude", "longitude"]
+MEAN_SURFACE_VAR_ATTRIBUTE = ["time", "metric"]
 
 T = TypeVar("T")
 
@@ -20,9 +20,17 @@ class VariableInfo:
 
 
 class DimensionInfo(Generic[T]):
-
-    def __init__(self, name: str, size: int, fill_value: T, min_val: T = None, max_val: T = None,
-                 oras_name: str = "", era_name: str = "", values: List[T] = None):
+    def __init__(
+        self,
+        name: str,
+        size: int,
+        fill_value: T,
+        min_val: T = None,
+        max_val: T = None,
+        oras_name: str = "",
+        era_name: str = "",
+        values: List[T] = None,
+    ):
         self.name = name
         self.size = size
         self.dtype = type(fill_value)
@@ -41,26 +49,60 @@ class DimensionInfo(Generic[T]):
             for value in np.linspace(self.min_val, self.max_val, self.size):
                 yield value
         else:
-            raise ValueError("Either 'values' or both 'min_val' and 'max_val' must be set to iterate.")
+            raise ValueError(
+                "Either 'values' or both 'min_val' and 'max_val' must be set to iterate."
+            )
 
 
 class Dimension(Enum):
-    LAT = DimensionInfo[np.float64]('latitude', 121, -99999, min_val=-90, max_val=90,
-                                    oras_name="y", era_name="latitude")
-    LON = DimensionInfo[np.float64]('longitude', 240, -99999, min_val=0, max_val=358.5,
-                                    oras_name="x", era_name="longitude")
+    LAT = DimensionInfo[np.float64](
+        "latitude",
+        121,
+        -99999,
+        min_val=-90,
+        max_val=90,
+        oras_name="y",
+        era_name="latitude",
+    )
+    LON = DimensionInfo[np.float64](
+        "longitude",
+        240,
+        -99999,
+        min_val=0,
+        max_val=358.5,
+        oras_name="x",
+        era_name="longitude",
+    )
     # TODO hier muss noch irgendwie gelöst werden, dass man nicht händisch die menge der Zeitschritte ändern muss
-    TIME = DimensionInfo[np.float64]('time', 12, -99999, min_val=0, max_val=11,
-                                     oras_name="time_counter", era_name="time")
-    LEVEL = DimensionInfo[np.float32]('level', 5, -99, min_val=0, max_val=4, era_name="level")
+    TIME = DimensionInfo[np.float64](
+        "time",
+        12,
+        -99999,
+        min_val=0,
+        max_val=11,
+        oras_name="time_counter",
+        era_name="time",
+    )
+    LEVEL = DimensionInfo[np.float32](
+        "level", 5, -99, min_val=0, max_val=4, era_name="level"
+    )
 
     # Ich glaube hier darf die reihenfolge nicht geändert werden von den Werte in values
-    METRICS = DimensionInfo[np.string_]('metric', 4, "", values=['min', 'max', 'mean', 'std'])
+    METRICS = DimensionInfo[np.string_](
+        "metric", 4, "", values=["min", "max", "mean", "std"]
+    )
 
     # TODO das hier ist jetzt nicht die schönste Lösung, aber mir fällt auf Anhieb gerade nicht ein wie ich es besser
     # TODO machen kann, deswegen mache ich es erstmal so.
-    METRICS_TIME = DimensionInfo[np.float64]('time', 1, -99999, min_val=0, max_val=1,
-                                             oras_name="time_counter", era_name="time")
+    METRICS_TIME = DimensionInfo[np.float64](
+        "time",
+        1,
+        -99999,
+        min_val=0,
+        max_val=1,
+        oras_name="time_counter",
+        era_name="time",
+    )
 
 
 class Variable(Enum):
@@ -68,8 +110,12 @@ class Variable(Enum):
 
 
 class ORASVariable(Variable):
-    COMPLETE_OCEAN_HEAT_CONTENT = VariableInfo("ocean_heat_content_for_the_total_water_column", True, "sohtcbtm")
-    OCEAN_HEAT_CONTENT_300M = VariableInfo("ocean_heat_content_for_the_upper_300m", True, "sohtc300")
+    COMPLETE_OCEAN_HEAT_CONTENT = VariableInfo(
+        "ocean_heat_content_for_the_total_water_column", True, "sohtcbtm"
+    )
+    OCEAN_HEAT_CONTENT_300M = VariableInfo(
+        "ocean_heat_content_for_the_upper_300m", True, "sohtc300"
+    )
 
 
 class ERAATMOSVariable(Variable):
@@ -92,9 +138,9 @@ class ERASURFACEVariable(Variable):
 
 
 VariableDict = {
-    'ORAS': ORASVariable,
-    'ERA5SURFACE': ERASURFACEVariable,
-    'ERA5ATMOS': ERAATMOSVariable,
+    "ORAS": ORASVariable,
+    "ERA5SURFACE": ERASURFACEVariable,
+    "ERA5ATMOS": ERAATMOSVariable,
 }
 VARIABLES = []
 for variable in VariableDict.values():

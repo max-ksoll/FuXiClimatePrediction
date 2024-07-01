@@ -1,36 +1,48 @@
 import torch
+import numpy as np
 
 
-def compute_weighted_rmse(forecast, label, lat_weights):
-    error = forecast - label
-    rmse = torch.sqrt((error ** 2 * lat_weights).mean(dim=(-1, -2)))
-    return rmse.mean()
+class WeightedMetrics:
+    def __init__(self, lat_weights):
+        self.lat_weights = lat_weights
+
+    def compute_weighted_rmse(self, forecast, labels):
+        mask = ~torch.isnan(labels)
+        error = forecast - labels
+        rmse = torch.sqrt((error**2 * self.lat_weights * mask).mean(dim=(-1, -2)))
+        return rmse.mean()
+
+    def compute_weighted_acc(self, forecast, labels, clim):
+        mask = ~torch.isnan(labels)
+
+        forecast_error = (forecast - clim) * self.lat_weights * mask
+        label_error = (labels - clim) * self.lat_weights * mask
+
+        forecast_mean_error = torch.mean(forecast_error, dim=(-1, -2))[
+            :, :, :, None, None
+        ]
+        label_mean_error = torch.mean(label_error, dim=(-1, -2))[:, :, :, None, None]
+
+        upper = torch.mean(
+            (forecast_error - forecast_mean_error) * (label_error - label_mean_error),
+            dim=(-1, -2),
+        )
+        lower_left = torch.sqrt(
+            torch.mean((forecast_error - forecast_mean_error) ** 2, dim=(-1, -2))
+        )
+        lower_right = torch.sqrt(
+            torch.mean((label_error - label_mean_error) ** 2, dim=(-1, -2))
+        )
+        return torch.mean(upper / (lower_left * lower_right))
+
+    def compute_weighted_mae(self, forecast, labels):
+        mask = ~torch.isnan(labels)
+        error = forecast - labels
+        mae = (torch.abs(error) * self.lat_weights * mask).mean()
+        return mae
 
 
-def compute_weighted_acc(forecast, labels, lat_weights, clim):
-    # input (bs, auto, 25, 121, 240)
-    # clim (25, 121, 240)
-    # lat_weights (121, 1)
-
-    forecast_error = (forecast - clim) * lat_weights
-    label_error = (labels - clim) * lat_weights
-
-    forecast_mean_error = torch.mean(forecast_error, dim=(-1, -2))[:, :, :, None, None]
-    label_mean_error = torch.mean(label_error, dim=(-1, -2))[:, :, :, None, None]
-
-    upper = torch.mean((forecast_error - forecast_mean_error) * (label_error - label_mean_error), dim=(-1, -2))
-    lower_left = torch.sqrt(torch.mean((forecast_error - forecast_mean_error) ** 2, dim=(-1, -2)))
-    lower_right = torch.sqrt(torch.mean((label_error - label_mean_error) ** 2, dim=(-1, -2)))
-    return torch.mean(upper / (lower_left * lower_right))
-
-
-def compute_weighted_mae(forecast, labels, lat_weights):
-    error = forecast - labels
-    mae = (torch.abs(error) * lat_weights).mean()
-    return mae
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     label = torch.rand((1, 1, 25, 121, 240))
     forecast = label + torch.rand((1, 1, 25, 121, 240))
     clim = torch.rand((25, 121, 240))
@@ -38,6 +50,6 @@ if __name__ == '__main__':
 
     lat_weights = torch.Tensor(np.cos(np.deg2rad(np.linspace(-90, 90, 121))))[:, None]
 
-    print(compute_weighted_acc(label, label, lat_weights, clim))
-    print(compute_weighted_acc(-label, label, lat_weights, clim))
-    print(compute_weighted_acc(forecast, label, lat_weights, clim))
+    metrics = WeightedMetrics(lat_weights)
+    print(metrics.compute_weighted_rmse(forecast, label))
+    print(metrics.compute_weighted_rmse_neu(forecast, label))

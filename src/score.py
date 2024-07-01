@@ -7,6 +7,7 @@ import xarray as xr
 
 # TODO implement nan mask here
 
+
 def compute_weighted_rmse(da_fc, da_true, weights_lat, mean_dims=xr.ALL_DIMS):
     """
     Compute the RMSE with latitude weighting from two xr.DataArrays.

@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.strategies import DDPStrategy
 
 import wandb
-from src.Dataset.era5_dataset import ERA5Dataset
 from src.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 

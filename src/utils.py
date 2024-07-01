@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 from scipy.ndimage import zoom
 
-logger = logging.getLogger('Timing Logger')
+logger = logging.getLogger("Timing Logger")
 
 
 def log_exec_time(func: Callable):
@@ -73,14 +73,19 @@ def resize_data(data: np.ndarray, shape: Tuple[int, ...]):
     return resized_array
 
 
-def regrid_data(ds: xr.Dataset, var_name: str, lat_name: str, lon_name: str,
-                grid: Tuple[float, float] = (1.5, 1.5)) -> xr.DataArray:
-    lat_out =  np.arange(-90, 90, grid[0])
-    lon_out =  np.arange(0, 358.5, grid[1])
+def regrid_data(
+    ds: xr.Dataset,
+    var_name: str,
+    lat_name: str,
+    lon_name: str,
+    grid: Tuple[float, float] = (1.5, 1.5),
+) -> xr.DataArray:
+    lat_out = np.arange(-90, 90, grid[0])
+    lon_out = np.arange(0, 358.5, grid[1])
     lon_out, lat_out = np.meshgrid(lon_out, lat_out)
-    lat_in = ds['latitude'].values
-    lon_in = ds['longitude'].values
-    sst_in = ds['sst'].values[0, :, :]
+    lat_in = ds["latitude"].values
+    lon_in = ds["longitude"].values
+    sst_in = ds["sst"].values[0, :, :]
     return regridder(ds[var_name])
 
 
@@ -88,12 +93,14 @@ def get_metrics_array(values: np.ndarray):
     # ['min', 'max', 'mean', 'std']
     # array -> time x lat x lon | time x level x lat x lon
     if values.ndim == 3:
-        return np.array([
-            np.nanmin(values),
-            np.nanmax(values),
-            np.nanmean(values),
-            np.nanstd(values)
-        ])
+        return np.array(
+            [
+                np.nanmin(values),
+                np.nanmax(values),
+                np.nanmean(values),
+                np.nanstd(values),
+            ]
+        )
     values = np.transpose(values, [1, 0, 2, 3])
     min = np.nanmin(values, (1, 2, 3))
     max = np.nanmax(values, (1, 2, 3))

@@ -8,11 +8,7 @@ from tqdm import tqdm
 
 from src.Dataset.era5_dataset import ERA5Dataset, TimeMode
 from src.fuxi import FuXi
-from src.score_torch import (
-    compute_weighted_acc,
-    compute_weighted_mae,
-    compute_weighted_rmse,
-)
+from src.score_torch import WeightedMetrics
 
 dotenv.load_dotenv()
 
@@ -77,19 +73,25 @@ def evaluate(model_path, compute_metrik=True):
 
     predicted_labels_list = torch.stack(predicted_labels_list, 0)
     labels_list = torch.stack(labels_list, 0)
-
+    weightedMetrics = WeightedMetrics()
     if compute_metrik:
         print(
             "RMSE:",
-            compute_weighted_rmse(predicted_labels_list, labels_list, lat_weights),
+            weightedMetrics.compute_weighted_rmse(
+                predicted_labels_list, labels_list, lat_weights.cpu()
+            ),
         )
         print(
             "ACC:",
-            compute_weighted_acc(predicted_labels_list, labels_list, lat_weights),
+            weightedMetrics.compute_weighted_acc(
+                predicted_labels_list, labels_list, lat_weights.cpu()
+            ),
         )
         print(
             "MAE:",
-            compute_weighted_mae(predicted_labels_list, labels_list, lat_weights),
+            weightedMetrics.compute_weighted_mae(
+                predicted_labels_list, labels_list, lat_weights.cpu()
+            ),
         )
 
     return predicted_labels_list, labels_list

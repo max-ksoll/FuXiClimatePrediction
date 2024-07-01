@@ -88,7 +88,7 @@ class Dimension(Enum):
     )
 
     # Ich glaube hier darf die reihenfolge nicht geändert werden von den Werte in values
-    METRICS = DimensionInfo[np.string_](
+    METRICS = DimensionInfo[np.strings](
         "metric", 4, "", values=["min", "max", "mean", "std"]
     )
 

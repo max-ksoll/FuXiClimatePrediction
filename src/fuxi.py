@@ -50,7 +50,7 @@ class FuXi(torch.nn.Module):
         timeseries = torch.nan_to_num(timeseries, nan=0.0)
 
         outputs = []
-        loss = torch.Tensor([0]).to(timeseries.device)
+        loss = torch.zeros(1, device=timeseries.device)
         model_input = timeseries[:, 0:2, :, :, :]
 
         for step in range(autoregression_steps):

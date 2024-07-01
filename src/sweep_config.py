@@ -36,6 +36,8 @@ def get_parameters_dict():
                 {"epochs": 10, "steps": 20},
             ]
         },
+        "devices": {"value": 1},
+        "num_nodes": {"value": 1},
     }
     return parameters_dict
 

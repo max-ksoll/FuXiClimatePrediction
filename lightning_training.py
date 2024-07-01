@@ -8,9 +8,9 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
+from pytorch_lightning.strategies import DDPStrategy
 
 import wandb
-from src.Dataset.era5_dataset import ERA5Dataset
 from src.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 
@@ -93,9 +93,21 @@ def train():
         checkpoint_callback = ModelCheckpoint(dirpath=os.environ.get('MODEL_DIR', './models'),
                                               save_on_train_epoch_end=True,
                                               save_top_k=-1)
-        # TODO Automagisierte Parallelisierung implementieren
+
+        if dotenv.dotenv_values().get('MULTI_GPU', False):
+            strategy = DDPStrategy(find_unused_parameters=False)
+            devices = config.get('devices')
+            num_nodes = config.get('num_nodes')
+        else:
+            strategy = "auto"
+            devices = "auto"
+            num_nodes = 1
+
         trainer = L.Trainer(
             accelerator=device,
+            strategy=strategy,
+            devices=devices,
+            num_nodes=num_nodes,
             logger=wandb_logger,
             callbacks=[checkpoint_callback,
                        StochasticWeightAveraging(swa_lrs=1e-2)],

@@ -1,10 +1,12 @@
 """
 Functions for evaluating forecasts.
 """
+
 import numpy as np
 import xarray as xr
 
 # TODO implement nan mask here
+
 
 def compute_weighted_rmse(da_fc, da_true, weights_lat, mean_dims=xr.ALL_DIMS):
     """
@@ -37,7 +39,7 @@ def compute_weighted_acc(da_fc, da_true, mean_dims=xr.ALL_DIMS):
         acc: Latitude weighted acc
     """
 
-    clim = da_true.mean('time')
+    clim = da_true.mean("time")
     try:
         t = np.intersect1d(da_fc.time, da_true.time)
         fa = da_fc.sel(time=t) - clim
@@ -53,11 +55,8 @@ def compute_weighted_acc(da_fc, da_true, mean_dims=xr.ALL_DIMS):
     fa_prime = fa - fa.mean()
     a_prime = a - a.mean()
 
-    acc = (
-            np.sum(w * fa_prime * a_prime) /
-            np.sqrt(
-                np.sum(w * fa_prime ** 2) * np.sum(w * a_prime ** 2)
-            )
+    acc = np.sum(w * fa_prime * a_prime) / np.sqrt(
+        np.sum(w * fa_prime**2) * np.sum(w * a_prime**2)
     )
     return acc
 
@@ -92,6 +91,6 @@ def evaluate_iterative_forecast(da_fc, da_true, func, mean_dims=xr.ALL_DIMS):
     rmses = []
     for f in da_fc.lead_time:
         fc = da_fc.sel(lead_time=f)
-        fc['time'] = fc.time + np.timedelta64(int(f), 'h')
+        fc["time"] = fc.time + np.timedelta64(int(f), "h")
         rmses.append(func(fc, da_true, mean_dims))
-    return xr.concat(rmses, 'lead_time')
+    return xr.concat(rmses, "lead_time")

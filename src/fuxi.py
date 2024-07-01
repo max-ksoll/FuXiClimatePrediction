@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class FuXi(torch.nn.Module):
-    def __init__(self, input_var, channels, transformer_block_count, lat, long, heads=8):
+    def __init__(
+        self, input_var, channels, transformer_block_count, lat, long, heads=8
+    ):
         super(FuXi, self).__init__()
         logger.info("Creating FuXi Model")
         self.space_time_cube_embedding = SpaceTimeCubeEmbedding(input_var, channels)
@@ -35,17 +37,20 @@ class FuXi(torch.nn.Module):
         x = self.u_transformer(x)
         return self.fc(x)
 
-    def step(self, timeseries, lat_weights, autoregression_steps=1, return_out=False) -> Union[
-        torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    def step(
+        self, timeseries, lat_weights, autoregression_steps=1, return_out=False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if autoregression_steps > timeseries.shape[1] - 2:
-            raise ValueError('autoregression_steps can\'t be greater than number of samples')
+            raise ValueError(
+                "autoregression_steps can't be greater than number of samples"
+            )
 
         # NaN-Werte durch 0 ersetzen und eine Maske erstellen
         mask = ~torch.isnan(timeseries)
         timeseries = torch.nan_to_num(timeseries, nan=0.0)
 
         outputs = []
-        loss = torch.Tensor([0]).to(timeseries.device)
+        loss = torch.zeros(1, device=timeseries.device)
         model_input = timeseries[:, 0:2, :, :, :]
 
         for step in range(autoregression_steps):
@@ -57,9 +62,14 @@ class FuXi(torch.nn.Module):
 
             # Maske für die aktuelle Zeitschritt anwenden
             step_mask = mask[:, step + 2, :, :, :]
-            loss += torch.sum(
-                torch.abs(timeseries[:, step + 2, :, :, :] - out) * lat_weights * step_mask
-            ) / step_mask.sum()
+            loss += (
+                torch.sum(
+                    torch.abs(timeseries[:, step + 2, :, :, :] - out)
+                    * lat_weights
+                    * step_mask
+                )
+                / step_mask.sum()
+            )
 
         if return_out:
             outputs = torch.stack(outputs, 1)
@@ -164,9 +174,9 @@ class UTransformer(torch.nn.Module):
                 window_size=window_size,
                 shift_size=[0 if i % 2 == 0 else w // 2 for w in window_size],
                 stochastic_depth_prob=0.2,
-                mlp_ratio=4.,
+                mlp_ratio=4.0,
                 dropout=0.05,
-                attention_dropout=0.05
+                attention_dropout=0.05,
             )
             self.attentionblock.append(block)
 

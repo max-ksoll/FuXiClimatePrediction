@@ -30,7 +30,6 @@ class FuXi(L.LightningModule):
         self.CLIMA_MEAN = clima_mean
         self.autoregression_steps = 1
         self.save_hyperparameters()
-        self.weightedMetrics = WeightedMetrics()
         # Register climate mean as buffer to ensure it is moved to the correct device
         self.register_buffer("CLIMA_MEAN", torch.tensor(clima_mean))
 
@@ -73,18 +72,17 @@ class FuXi(L.LightningModule):
 
         ret_dict = dict()
         ret_dict["loss"] = loss
-        rmse = self.weightedMetrics.compute_weighted_rmse(outs, label, lat_weights)
+        score = Score()
+        rmse = score.compute_weighted_rmse(outs, label, lat_weights)
         self.log("val_rmse", rmse)
         ret_dict["rmse"] = rmse
 
         if self.CLIMA_MEAN is not None:
-            acc = self.weightedMetrics.compute_weighted_acc(
-                outs, label, self.CLIMA_MEAN, lat_weights
-            )
+            acc = score.compute_weighted_acc(outs, label, self.CLIMA_MEAN, lat_weights)
             self.log("val_acc", acc)
             ret_dict["acc"] = acc
 
-        mae = self.weightedMetrics.compute_weighted_mae(outs, label, lat_weights)
+        mae = score.compute_weighted_mae(outs, label, lat_weights)
         self.log("val_mae", mae)
         ret_dict["mae"] = mae
 

@@ -6,6 +6,7 @@ from src.fuxi import FuXi as FuXiBase
 from src.score_torch import *
 import torch
 
+
 class FuXi(L.LightningModule):
     def __init__(
         self,
@@ -41,11 +42,11 @@ class FuXi(L.LightningModule):
     def set_autoregression_steps(self, autoregression_steps):
         self.autoregression_steps = autoregression_steps
 
-    def set_lr(self, lr, T_0,T_mult,eta_min):
+    def set_lr(self, lr, T_0, T_mult, eta_min):
         self.lr = lr
-        self.T_0 = T_0,
-        self.T_mult = T_mult,
-        self.eta_min = eta_min,
+        self.T_0 = (T_0,)
+        self.T_mult = (T_mult,)
+        self.eta_min = (eta_min,)
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         ts = args[0][0]

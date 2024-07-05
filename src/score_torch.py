@@ -4,7 +4,7 @@ import torch
 class Score:
     def compute_weighted_rmse(self, forecast, labels, lat_weights):
         mask = ~torch.isnan(labels)
-        error = (forecast - labels)
+        error = forecast - labels
         error[~mask] = 0
         weighted_squared_error = (error**2) * lat_weights
         rmse = torch.sqrt(weighted_squared_error.sum() / mask.sum())

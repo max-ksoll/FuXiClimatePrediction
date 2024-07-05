@@ -1,5 +1,5 @@
 import unittest
-from src.score_torch import *
+from src.Model.score_torch import *
 
 
 class TestMetrics(unittest.TestCase):

@@ -16,7 +16,7 @@ from src.Dataset.dimensions import (
     ERA_SURFACE_VARIABLES,
     ERA_ATMOS_VARIABLES,
     TIME_DIMENSION_NAME,
-    LAT,
+    LAT, METRICS_ARRAY,
 )
 
 logger = logging.getLogger("ERA5 Dataset")
@@ -24,11 +24,12 @@ logger = logging.getLogger("ERA5 Dataset")
 
 class FuXiDataset(Dataset):
     def __init__(
-        self,
-        dataset_path: os.PathLike | str,
-        means_file: os.PathLike | str,
-        max_autoregression_steps: int = 1,
+            self,
+            dataset_path: os.PathLike | str,
+            means_file: os.PathLike | str,
+            max_autoregression_steps: int = 1,
     ):
+        logger.info(f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}")
         super(FuXiDataset, self).__init__()
         store = zarr.DirectoryStore(dataset_path)
         self.sources = zarr.group(store=store)
@@ -55,60 +56,10 @@ class FuXiDataset(Dataset):
 
     def init_max_min(self):
         logger.debug("Loading Min Tensor")
-        stack = torch.stack(
-            [
-                torch.tensor(np.array(self.means[var.name][0]))
-                for var in self.surface_vars
-            ],
-            0,
-        )
-        stack2 = torch.stack(
-            [
-                torch.tensor(np.array(self.means[var.name][0, :]))
-                for var in self.atmos_vars
-            ],
-            0,
-        ).flatten()
-        self.min = torch.cat(
-            [
-                torch.stack(
-                    [
-                        torch.tensor(np.array(self.means[var.name][0]))
-                        for var in self.surface_vars
-                    ],
-                    0,
-                ),
-                torch.stack(
-                    [
-                        torch.tensor(np.array(self.means[var.name][0, :]))
-                        for var in self.atmos_vars
-                    ],
-                    0,
-                ).flatten(),
-            ],
-            dim=0,
-        )
+        self.min = self.get_from_means_file('min')
 
         logger.debug("Loading Max Tensor")
-        max_val = torch.cat(
-            [
-                torch.stack(
-                    [
-                        torch.tensor(np.array(self.means[var.name][1]))
-                        for var in self.surface_vars
-                    ],
-                    0,
-                ),
-                torch.stack(
-                    [
-                        torch.tensor(np.array(self.means[var.name][1, :]))
-                        for var in self.atmos_vars
-                    ],
-                    0,
-                ).flatten(),
-            ],
-            dim=0,
-        )
+        max_val = self.get_from_means_file('max')
 
         self.max_minus_min = max_val - self.min
         self.min = self.min[:, None, None]
@@ -170,6 +121,14 @@ class FuXiDataset(Dataset):
             return self.surface_vars[idx].name, 0
         idx -= len(self.surface_vars)
         return self.atmos_vars[idx // 5].name, idx % 5
+
+    def get_from_means_file(self, mode: str):
+        mode_idx = METRICS_ARRAY.index(mode)
+        return torch.cat([
+            torch.stack([torch.tensor(np.array(self.means[var.name][mode_idx])) for var in self.surface_vars], 0),
+            torch.stack([torch.tensor(np.array(self.means[var.name][mode_idx, :]))
+                         for var in self.atmos_vars], 0).flatten()
+        ], dim=0)
 
 
 if __name__ == "__main__":

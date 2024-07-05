@@ -18,6 +18,9 @@ def get_parameters_dict():
     parameters_dict = {
         "batch_size": {"value": 1},
         "init_learning_rate": {"value": 2.5e-4},
+        "T_0": {"value": 2},
+        "eta_min": {"value": 1e-7},
+        "T_mult": {"value": 2},
         "devices": {"value": 1},
         "num_nodes": {"value": 1},
         "model_parameter": {

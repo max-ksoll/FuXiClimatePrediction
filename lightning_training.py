@@ -86,8 +86,11 @@ def train():
         transformer_blocks = config.get('model_parameter')['transformer_blocks']
         transformer_heads = config.get('model_parameter')['heads']
         lr = config.get("init_learning_rate")
+        T_0 = config.get("T_0")
+        T_mult = config.get("T_mult")
+        eta_min = config.get("eta_min")
 
-        model = FuXi(35, channels, transformer_blocks, transformer_heads, lr, clima_mean)
+        model = FuXi(35, channels, transformer_blocks, transformer_heads, lr, T_0, T_mult, eta_min, clima_mean)
         wandb_logger = WandbLogger(id=run.id, resume='allow')
         wandb_logger.watch(model, log_freq=100)
         checkpoint_callback = ModelCheckpoint(dirpath=os.environ.get('MODEL_DIR', './models'),

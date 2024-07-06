@@ -297,7 +297,7 @@ class DataBuilder:
 
 if __name__ == "__main__":
     start_year = 1958
-    end_year = 1958
+    end_year = 2010
     data_dir = "/Users/ksoll/git/FuXiClimatePrediction/data"
 
     builder = DataBuilder(data_dir, start_year, end_year)

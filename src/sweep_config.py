@@ -24,13 +24,19 @@ def get_parameters_dict():
         "devices": {"value": 1},
         "num_nodes": {"value": 1},
         "model_parameter": {
-            "value": {"channel": 32, "transformer_blocks": 1, "heads": 1}
+            "value": {"channel": 2, "transformer_blocks": 1, "heads": 1}
         },
         "autoregression_steps_epochs": {
-            "value": [
-                {"epochs": 10, "steps": 1},
-            ]
+            "value": {
+                1: 1,  # until epoch n -> m autoregression step
+                5: 2,
+                10: 4,
+                -1: 6
+            }
         },
+        "max_epochs": {
+            "value": 50
+        }
     }
     return parameters_dict
 
@@ -41,6 +47,6 @@ def getSweepID():
     sweep_config["name"] = sweep_config["name"]
     sweep_id = wandb.sweep(
         sweep=sweep_config,
-        project="FuXiClimPred",
+        project="Test",
     )
     return sweep_id

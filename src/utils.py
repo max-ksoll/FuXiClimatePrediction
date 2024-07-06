@@ -1,14 +1,14 @@
 import logging
 import os
 import time
-from typing import Set, List, Tuple, Callable
+from typing import Set, List, Tuple, Callable, Dict
 
 import numpy as np
 import xarray as xr
 from scipy.ndimage import zoom
 
-logger = logging.getLogger("Timing Logger")
-
+timing_logger = logging.getLogger("Timing Logger")
+utils_logger = logging.getLogger(__name__)
 
 def log_exec_time(func: Callable):
     def wrapper(*args, **kwargs):
@@ -16,7 +16,7 @@ def log_exec_time(func: Callable):
         result = func(*args, **kwargs)
         end_time = time.time()
         execution_time = end_time - start_time
-        logger.info(
+        timing_logger.info(
             f"Function '{func.__name__}' executed in {execution_time:.4f} seconds"
         )
         return result
@@ -73,22 +73,6 @@ def resize_data(data: np.ndarray, shape: Tuple[int, ...]):
     return resized_array
 
 
-def regrid_data(
-    ds: xr.Dataset,
-    var_name: str,
-    lat_name: str,
-    lon_name: str,
-    grid: Tuple[float, float] = (1.5, 1.5),
-) -> xr.DataArray:
-    lat_out = np.arange(-90, 90, grid[0])
-    lon_out = np.arange(0, 358.5, grid[1])
-    lon_out, lat_out = np.meshgrid(lon_out, lat_out)
-    lat_in = ds["latitude"].values
-    lon_in = ds["longitude"].values
-    sst_in = ds["sst"].values[0, :, :]
-    return regridder(ds[var_name])
-
-
 def get_metrics_array(values: np.ndarray):
     # ['min', 'max', 'mean', 'std']
     # array -> time x lat x lon | time x level x lat x lon
@@ -112,3 +96,21 @@ def get_metrics_array(values: np.ndarray):
     mean = mean.reshape(-1, 1)
     std = std.reshape(-1, 1)
     return np.concatenate((min, max, mean, std), axis=1).transpose()
+
+
+def config_epoch_to_autoregression_steps(config: Dict[str, int], epoch: int) -> int:
+    utils_logger.debug(f"Config: {config}, epoch: {epoch}")
+    for key, value in config.items():
+        if epoch < int(key):
+            utils_logger.debug(f"Config key {key} is less than epoch {epoch}")
+            return value
+    return config.get("-1", 1)
+
+
+def get_dataloader_params(batch_size: int):
+    return {
+        'batch_size': batch_size,
+        'shuffle': False,
+        'num_workers': os.cpu_count() // 2,
+        'pin_memory': True
+    }

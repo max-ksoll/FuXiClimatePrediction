@@ -87,7 +87,7 @@ class FuXiDataset(Dataset):
         sources = torch.stack(sources, dim=0)
         # Normalization
         logger.debug(f"Normalizing Data")
-        # sources = (sources - self.min) / self.max_minus_min
+        sources = (sources - self.min) / self.max_minus_min
 
         logger.debug(
             f"Shape: {sources.shape}, Min: {np.nanmin(sources.numpy())}, Max: {np.nanmax(sources.numpy())}"

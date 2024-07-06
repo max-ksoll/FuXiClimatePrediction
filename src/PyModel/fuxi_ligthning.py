@@ -24,7 +24,7 @@ class FuXi(L.LightningModule):
             transformer_blocks: int,
             transformer_heads: int,
             lr: float,
-            config: Dict[int, int],
+            config: Dict[str, int],
             train_ds_path: os.PathLike | str,
             train_mean_ds_path: os.PathLike | str,
             val_ds_path: os.PathLike | str,

@@ -25,10 +25,10 @@ def get_parameters_dict():
         },
         "autoregression_steps_epochs": {
             "value": {
-                1: 1,  # until epoch 10 -> 1 Autoregression step
-                2: 2,  # until epoch 20 -> 2 Autoregression step
-                3: 4,  # until epoch 20 -> 2 Autoregression step
-                -1: 6  # otherwise 4
+                1: 1,  # until epoch n -> m autoregression step
+                5: 2,
+                10: 4,
+                -1: 6
             }
         },
         "max_epochs": {

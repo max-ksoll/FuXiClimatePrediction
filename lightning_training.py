@@ -12,7 +12,7 @@ from pytorch_lightning.strategies import DDPStrategy
 
 import wandb
 from src.Dataset.fuxi_dataset import FuXiDataset
-from src.Model.fuxi_ligthning import FuXi
+from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 from src.utils import get_dataloader_params, config_epoch_to_autoregression_steps
 

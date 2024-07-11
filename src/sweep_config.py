@@ -33,12 +33,10 @@ def get_parameters_dict():
                 1: 1,  # until epoch n -> m autoregression step
                 5: 2,
                 10: 4,
-                -1: 6
+                -1: 6,
             }
         },
-        "max_epochs": {
-            "value": 50
-        }
+        "max_epochs": {"value": 50},
     }
     return parameters_dict
 

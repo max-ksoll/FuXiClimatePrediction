@@ -124,9 +124,7 @@ class DataDownloader:
                 {
                     "product_type": "reanalysis",
                     "format": "netcdf",
-                    "variable": [
-                        ERA5_VARIABLES
-                    ],
+                    "variable": [ERA5_VARIABLES],
                     "year": str(year),
                     "month": month,
                     "day": [

@@ -35,16 +35,19 @@ def train():
         transformer_blocks = config.get('model_parameter')['transformer_blocks']
         transformer_heads = config.get('model_parameter')['heads']
         optimizer_config = get_optimizer_config()
-
+        base_path = os.path.dirname(__file__)
         model = FuXi(
-            35, channels = channels,transformer_blocks= transformer_blocks,transformer_heads=transformer_heads,
-            autoregression_steps_config= config.get('autoregression_steps_epochs'),
-            train_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/1958_1958.zarr",
-            train_mean_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
-            val_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/1958_1958.zarr",
-            val_mean_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
+            35,
+            channels=channels,
+            transformer_blocks=transformer_blocks,
+            transformer_heads=transformer_heads,
+            autoregression_steps_config=config.get('autoregression_steps_epochs'),
+            train_ds_path=os.environ.get('TRAIN_DS_PATH', os.path.join(base_path, 'data/1958_1958.zarr')),
+            train_mean_ds_path=os.environ.get('TRAIN_MEAN_DS_PATH', os.path.join(base_path, 'data/mean_1958_1958.zarr')),
+            val_ds_path=os.environ.get('VAL_DS_PATH', os.path.join(base_path, 'data/1958_1958.zarr')),
+            val_mean_ds_path=os.environ.get('VAL_MEAN_DS_PATH', os.path.join(base_path, 'data/mean_1958_1958.zarr')),
             batch_size=config.get('batch_size'),
-            optimizer_config = optimizer_config,
+            optimizer_config=optimizer_config,
         )
 
         wandb_logger = WandbLogger(id=run.id, resume='allow')

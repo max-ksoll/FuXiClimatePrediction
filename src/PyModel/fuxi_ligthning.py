@@ -1,15 +1,11 @@
 import logging
-import os
-from typing import Any
+from typing import Any, List
 
-import pytorch_lightning as L
-from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
-from torch.utils.data import DataLoader
+import lightning as L
 
-from src.Dataset.fuxi_dataset import FuXiDataset
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.PyModel.score_torch import *
-import torch
+from src.utils import config_epoch_to_autoregression_steps
 
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS, LAT_DIM, LONG_DIM
 from src.utils import config_epoch_to_autoregression_steps, get_dataloader_params
@@ -19,18 +15,14 @@ logger = logging.getLogger(__name__)
 
 class FuXi(L.LightningModule):
     def __init__(
-        self,
-        input_vars: int,
-        channels: int,
-        transformer_blocks: int,
-        transformer_heads: int,
-        autoregression_steps_config: Dict[str, int],
+            self,
+            input_vars: int,
+            channels: int,
+            transformer_blocks: int,
+            transformer_heads: int,
+            lr: float,
+            config: Dict[str, int],
         optimizer_config: Dict[str, Any],
-        train_ds_path: os.PathLike | str,
-        train_mean_ds_path: os.PathLike | str,
-        val_ds_path: os.PathLike | str,
-        val_mean_ds_path: os.PathLike | str,
-        batch_size: int = 1,
     ):
         super().__init__()
         self.model: FuXiBase = FuXiBase(
@@ -45,13 +37,7 @@ class FuXi(L.LightningModule):
             autoregression_steps_config, 0
         )
 
-        self.train_ds_path = train_ds_path
-        self.train_mean_ds_path = train_mean_ds_path
-        self.val_ds_path = val_ds_path
-        self.val_mean_ds_path = val_mean_ds_path
-
-        self.batch_size = batch_size
-        self.config = autoregression_steps_config
+        self.config = config
         self.optimizer_config = optimizer_config
         self.save_hyperparameters(
             "input_vars", "channels", "transformer_blocks", "transformer_heads"
@@ -68,28 +54,10 @@ class FuXi(L.LightningModule):
                 self.config, self.current_epoch
             )
 
-    def train_dataloader(self) -> TRAIN_DATALOADERS:
-        logger.debug("Setting Train Dataloader")
-        return DataLoader(
-            FuXiDataset(
-                self.train_ds_path, self.train_mean_ds_path, self.autoregression_steps
-            ),
-            **get_dataloader_params(self.batch_size),
-        )
-
-    def val_dataloader(self) -> EVAL_DATALOADERS:
-        logger.debug("Setting Val Dataloader")
-        return DataLoader(
-            FuXiDataset(
-                self.val_ds_path, self.val_mean_ds_path, self.autoregression_steps
-            ),
-            **get_dataloader_params(self.batch_size),
-        )
-
-    def forward(self, *args: Any, **kwargs: Any) -> Any:
+    def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
         lat_weights = args[0][1]
-        loss, out = self.model.step(
+        _, out = self.model.step(
             ts,
             lat_weights,
             autoregression_steps=self.autoregression_steps,
@@ -97,7 +65,7 @@ class FuXi(L.LightningModule):
         )
         return out
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> torch.Tensor:
         ts, lat_weights = batch
         loss = self.model.step(
             ts, lat_weights, autoregression_steps=self.autoregression_steps
@@ -105,7 +73,7 @@ class FuXi(L.LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, _) -> Dict[str, torch.Tensor]:
         ts, lat_weights = batch
         label = torch.clone(ts[:, 2:, :, :, :])
 

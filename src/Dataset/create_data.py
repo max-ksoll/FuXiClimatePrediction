@@ -80,7 +80,7 @@ class DataDownloader:
     def download_era5_atmospheric_data(self):
         downloader_logger.info("Downloading ERA5 Atmospheric Data")
         paths = []
-        decade_strings, decades = utils.get_date_strings(start_year, end_year)
+        decade_strings, decades = utils.get_date_strings(self.start_year, self.end_year)
         for idx in tqdm(range(len(decade_strings))):
             downloader_logger.debug(
                 f"Downloading ERA5 Atmospheric for decade: {decades[idx]}"
@@ -111,13 +111,13 @@ class DataDownloader:
     def download_era5_surface_data(self):
         downloader_logger.info("Downloading ERA5 Surface Variables")
         paths = []
-        month = utils.get_month_as_strings(start_year, end_year)
-        for year in utils.get_years_as_strings(start_year, end_year):
+        month = utils.get_month_as_strings(self.start_year, self.end_year)
+        for year in utils.get_years_as_strings(self.start_year, self.end_year)[0]:
             downloader_logger.debug(
                 f"Downloading ERA5 Surface Variables for year {year}"
             )
             file_path = os.path.join(
-                self.download_path, f"era5_surface_{start_year}.nc"
+                self.download_path, f"era5_surface_{year}.nc"
             )
             self.cds_client.retrieve(
                 "reanalysis-era5-single-levels",
@@ -128,37 +128,9 @@ class DataDownloader:
                     "year": str(year),
                     "month": month,
                     "day": [
-                        "01",
-                        "02",
-                        "03",
-                        "04",
-                        "05",
-                        "06",
-                        "07",
-                        "08",
-                        "09",
-                        "10",
-                        "11",
-                        "12",
-                        "13",
-                        "14",
-                        "15",
-                        "16",
-                        "17",
-                        "18",
-                        "19",
-                        "20",
-                        "21",
-                        "22",
-                        "23",
-                        "24",
-                        "25",
-                        "26",
-                        "27",
-                        "28",
-                        "29",
-                        "30",
-                        "31",
+                        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
+                        "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24",
+                        "25", "26", "27", "28", "29", "30", "31",
                     ],
                     "time": ["00:00", "06:00", "12:00", "18:00"],
                     "grid": [1.5, 1.5],
@@ -171,32 +143,36 @@ class DataDownloader:
     @log_exec_time
     def download_oras_data(self):
         downloader_logger.info(f"Downloading ORAS data")
-        month = utils.get_month_as_strings(start_year, end_year)
-        years = utils.get_years_as_strings(start_year, end_year)
-        file_path = os.path.join(
-            self.download_path, f"oras_{start_year}_{end_year}.zip"
-        )
-        self.cds_client.retrieve(
-            "reanalysis-oras5",
-            {
-                "format": "zip",
-                "product_type": "consolidated",
-                "vertical_resolution": "single_level",
-                "variable": [
-                    "ocean_heat_content_for_the_total_water_column",
-                    "ocean_heat_content_for_the_upper_300m",
-                ],
-                "year": years,
-                "month": month,
-            },
-            file_path,
-        )
+        month = utils.get_month_as_strings(self.start_year, self.end_year)
+        years = utils.get_years_as_strings(self.start_year, self.end_year, 15)
+        zip_paths = []
+        for year_subset in years:
+            file_path = os.path.join(self.download_path, f"oras_{year_subset[0]}_{year_subset[-1]}.zip")
+            self.cds_client.retrieve(
+                "reanalysis-oras5",
+                {
+                    "format": "zip",
+                    "product_type": "consolidated",
+                    "vertical_resolution": "single_level",
+                    "variable": [
+                        "ocean_heat_content_for_the_total_water_column",
+                        "ocean_heat_content_for_the_upper_300m",
+                    ],
+                    "year": year_subset,
+                    "month": month,
+                    # 'grid': [1.5, 1.5]
+                },
+                file_path,
+            )
+            zip_paths.append(file_path)
         before = get_nc_files(self.download_path)
         downloader_logger.info(f"Unzipping ORAS Data")
-        with zipfile.ZipFile(file_path, "r") as zip_ref:
-            zip_ref.extractall(self.download_path)
-        downloader_logger.info("Removing ORAS Zip File")
-        os.remove(file_path)
+        for file_path in zip_paths:
+            downloader_logger.debug(f"Unzipping file: {file_path}")
+            with zipfile.ZipFile(file_path, "r") as zip_ref:
+                zip_ref.extractall(self.download_path)
+            downloader_logger.info(f"Removing {file_path}")
+            os.remove(file_path)
         after = get_nc_files(self.download_path)
         self.oras_paths = list(
             map(lambda x: os.path.join(self.download_path, x), list(after - before))
@@ -244,18 +220,16 @@ class DataConverter:
             ds = xr.open_dataset(path)
             for variable in ERA_SURFACE_VARIABLES:
                 converter_logger.debug(f"Writing ERA5 Surface for {variable.name}")
-                for year in range(
-                    self.data_downloader.start_year, self.data_downloader.end_year + 1
-                ):
-                    for month in range(1, 13):
-                        converter_logger.debug(
-                            f"Writing ERA5 Surface for {variable} at time {year}/{month}"
-                        )
-                        vals = ds[variable.cdf_name].sel(time=f"{year}-{month}").values
-                        vals = np.mean(vals, axis=0, keepdims=True)
-                        vals = np.flip(vals, -2)
-                        vals = np.roll(vals, vals.shape[-1] // 2, axis=-1)
-                        self.zarr_handler.append_data(variable, vals)
+                year = ds['time'].values.astype('datetime64[Y]').astype(str)[0]
+                for month in range(1, 13):
+                    converter_logger.debug(
+                        f"Writing ERA5 Surface for {variable} at time {year}-{month}"
+                    )
+                    vals = ds[variable.cdf_name].sel(time=f"{year}-{month:02d}").values
+                    vals = np.mean(vals, axis=0, keepdims=True)
+                    vals = np.flip(vals, -2)
+                    vals = np.roll(vals, vals.shape[-1] // 2, axis=-1)
+                    self.zarr_handler.append_data(variable, vals)
 
     @log_exec_time
     def write_era_atmos(self):
@@ -277,18 +251,19 @@ class DataBuilder:
         self.data_downloader = DataDownloader(data_dir, start_year, end_year)
         self.data_converter = DataConverter(self.builder, self.data_downloader)
 
-    def generate_data(self, force_donwload: bool = False):
+    def generate_data(self, force_download: bool = False):
         builder_logger.info("Generating data...")
         self.builder.build()
-        self.data_downloader.download(force_donwload)
+        self.data_downloader.download(force_download)
         self.data_converter.write()
         self.builder.finish()
         builder_logger.info("Finished Generating data...")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     start_year = 1958
-    end_year = 2010
+    end_year = 1960
     data_dir = "/Users/ksoll/git/FuXiClimatePrediction/data"
 
     builder = DataBuilder(data_dir, start_year, end_year)

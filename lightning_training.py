@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Tuple
 
 import dotenv
 import pytorch_lightning as L
@@ -15,6 +14,7 @@ from src.Dataset.fuxi_dataset import FuXiDataset
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 from src.utils import get_dataloader_params, config_epoch_to_autoregression_steps
+from src.wandb_utils import get_optimizer_config
 
 dotenv.load_dotenv()
 
@@ -34,19 +34,17 @@ def train():
         channels = config.get('model_parameter')['channel']
         transformer_blocks = config.get('model_parameter')['transformer_blocks']
         transformer_heads = config.get('model_parameter')['heads']
-        lr = config.get("init_learning_rate")
-        T_0 = config.get("T_0")
-        T_mult = config.get("T_mult")
-        eta_min = config.get("eta_min")
+        optimizer_config = get_optimizer_config()
 
         model = FuXi(
-            35, channels, transformer_blocks, transformer_heads, lr,
-            config.get('autoregression_steps_epochs'),
-            train_ds_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
-            train_mean_ds_path="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
-            val_ds_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
-            val_mean_ds_path="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
-            batch_size=config.get('batch_size')
+            35, channels = channels,transformer_blocks= transformer_blocks,transformer_heads=transformer_heads,
+            autoregression_steps_config= config.get('autoregression_steps_epochs'),
+            train_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/1958_1958.zarr",
+            train_mean_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
+            val_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/1958_1958.zarr",
+            val_mean_ds_path="/Users/xgxtphg/Documents/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
+            batch_size=config.get('batch_size'),
+            optimizer_config = optimizer_config,
         )
 
         wandb_logger = WandbLogger(id=run.id, resume='allow')

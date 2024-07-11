@@ -21,6 +21,7 @@ from src.Dataset.dimensions import (
 )
 from src.Dataset.regridding import transform_tripolar_to_lat_lon
 from src.Dataset.zarr_handler import ZarrHandler
+from src.global_vars import ORAS_LAT_LON_GRID_SIZE, LAT_LON_GRID_SIZE, ERA5_VARIABLES
 from src.utils import log_exec_time, get_nc_files, resize_data
 
 downloader_logger = logging.getLogger("Data Downloader")
@@ -99,7 +100,7 @@ class DataDownloader:
                     "stream": "moda",
                     "type": "an",
                     "format": "netcdf",
-                    "grid": [1.5, 1.5],
+                    "grid": [LAT_LON_GRID_SIZE[0], LAT_LON_GRID_SIZE[1]],
                 },
                 file_path,
             )
@@ -124,14 +125,7 @@ class DataDownloader:
                     "product_type": "reanalysis",
                     "format": "netcdf",
                     "variable": [
-                        "10m_u_component_of_wind",
-                        "10m_v_component_of_wind",
-                        "2m_temperature",
-                        "sea_surface_temperature",
-                        "soil_temperature_level_1",
-                        "surface_latent_heat_flux",
-                        "total_precipitation",
-                        "volumetric_soil_water_layer_2",
+                        ERA5_VARIABLES
                     ],
                     "year": str(year),
                     "month": month,
@@ -196,7 +190,6 @@ class DataDownloader:
                 ],
                 "year": years,
                 "month": month,
-                # 'grid': [1.5, 1.5]
             },
             file_path,
         )
@@ -234,7 +227,7 @@ class DataConverter:
                 filter(lambda x: x.cdf_name == variable_name, ORAS_VARIABLES)
             )[0]
             converter_logger.debug(f"Regridding ORAS Data for {path}")
-            lat_lon_grid_size = (0.25, 0.25)
+            lat_lon_grid_size = ORAS_LAT_LON_GRID_SIZE
             variable_data = transform_tripolar_to_lat_lon(
                 ds[variable.cdf_name].values,
                 ds["nav_lat"].values,

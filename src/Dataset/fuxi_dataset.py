@@ -15,9 +15,9 @@ from src.Dataset.dimensions import (
     ORAS_VARIABLES,
     ERA_SURFACE_VARIABLES,
     ERA_ATMOS_VARIABLES,
-    TIME_DIMENSION_NAME,
     LAT, METRICS_ARRAY,
 )
+from src.global_vars import TIME_DIMENSION_NAME
 
 logger = logging.getLogger("ERA5 Dataset")
 

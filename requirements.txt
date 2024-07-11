@@ -13,3 +13,4 @@ ipympl
 lightning
 cdsapi
 netcdf4
+scipy

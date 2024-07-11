@@ -11,6 +11,7 @@ from src.PyModel.fuxi import FuXi as FuXiBase
 from src.PyModel.score_torch import *
 import torch
 
+from src.global_vars import OPTIMIZER_REQUIRED_KEYS, LAT_DIM, LONG_DIM
 from src.utils import config_epoch_to_autoregression_steps, get_dataloader_params
 
 logger = logging.getLogger(__name__)
@@ -23,8 +24,8 @@ class FuXi(L.LightningModule):
             channels: int,
             transformer_blocks: int,
             transformer_heads: int,
-            lr: float,
-            config: Dict[str, int],
+            autoregression_steps_config: Dict[str, int],
+            optimizer_config: Dict[str, Any],
             train_ds_path: os.PathLike | str,
             train_mean_ds_path: os.PathLike | str,
             val_ds_path: os.PathLike | str,
@@ -36,12 +37,11 @@ class FuXi(L.LightningModule):
             input_vars,
             channels,
             transformer_blocks,
-            121,
-            240,
+            LAT_DIM,
+            LONG_DIM,
             heads=transformer_heads,
         )
-        self.lr = lr
-        self.autoregression_steps = config_epoch_to_autoregression_steps(config, 0)
+        self.autoregression_steps = config_epoch_to_autoregression_steps(autoregression_steps_config, 0)
 
         self.train_ds_path = train_ds_path
         self.train_mean_ds_path = train_mean_ds_path
@@ -49,12 +49,12 @@ class FuXi(L.LightningModule):
         self.val_mean_ds_path = val_mean_ds_path
 
         self.batch_size = batch_size
-        self.config = config
+        self.config = autoregression_steps_config
+        self.optimizer_config = optimizer_config
         self.save_hyperparameters(
             'input_vars', 'channels', 'transformer_blocks', 'transformer_heads'
         )
-        # Register climate mean as buffer to ensure it is moved to the correct device
-        # self.register_buffer("CLIMA_MEAN", clima_mean)
+
 
     def on_train_epoch_end(self) -> None:
         old_auto_steps = self.autoregression_steps
@@ -75,9 +75,6 @@ class FuXi(L.LightningModule):
             FuXiDataset(self.val_ds_path, self.val_mean_ds_path, self.autoregression_steps),
             **get_dataloader_params(self.batch_size)
         )
-
-    def set_lr(self, lr):
-        self.lr = lr
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         ts = args[0][0]
@@ -132,13 +129,23 @@ class FuXi(L.LightningModule):
         return ret_dict
 
     def configure_optimizers(self):
+        for key in OPTIMIZER_REQUIRED_KEYS:
+            if key not in self.optimizer_config:
+                logger.error(f"Optimizer config is missing '{key}'")
+                raise KeyError(f"Optimizer config is missing '{key}'")
+
+        logger.debug("Setting Optimizer Values")
+        betas = self.optimizer_config['optimizer_config_betas'][0]
         optimizer = torch.optim.AdamW(
-            self.parameters(), lr=self.lr, betas=(0.9, 0.95), weight_decay=0.1
+            self.parameters(),
+            lr=self.optimizer_config['optimizer_config_lr'],
+            betas=(betas[0], betas[1]),
+            weight_decay=self.optimizer_config['optimizer_config_weight_decay']
         )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
             optimizer,
-            T_0=2,
-            T_mult=2,
-            eta_min=1e-7,
+            T_0=self.optimizer_config['optimizer_config_T_0'],
+            T_mult=self.optimizer_config['optimizer_config_T_mult'],
+            eta_min=self.optimizer_config['optimizer_config_eta_min'],
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]

@@ -20,9 +20,8 @@ class FuXi(L.LightningModule):
             channels: int,
             transformer_blocks: int,
             transformer_heads: int,
-            lr: float,
             config: Dict[str, int],
-        optimizer_config: Dict[str, Any],
+            optimizer_config: Dict[str, Any],
     ):
         super().__init__()
         self.model: FuXiBase = FuXiBase(
@@ -34,7 +33,7 @@ class FuXi(L.LightningModule):
             heads=transformer_heads,
         )
         self.autoregression_steps = config_epoch_to_autoregression_steps(
-            autoregression_steps_config, 0
+            config, 0
         )
 
         self.config = config
@@ -46,8 +45,8 @@ class FuXi(L.LightningModule):
     def on_train_epoch_end(self) -> None:
         old_auto_steps = self.autoregression_steps
         if (
-            config_epoch_to_autoregression_steps(self.config, self.current_epoch)
-            != old_auto_steps
+                config_epoch_to_autoregression_steps(self.config, self.current_epoch)
+                != old_auto_steps
         ):
             logger.debug("End of Train Epoch: Setting new Autoregression steps")
             self.autoregression_steps = config_epoch_to_autoregression_steps(

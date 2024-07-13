@@ -34,9 +34,9 @@ def train():
         transformer_blocks = config.get('model_parameter')['transformer_blocks']
         transformer_heads = config.get('model_parameter')['heads']
         optimizer_config = get_optimizer_config()
-        base_path = os.path.dirname(__file__)
+
         model = FuXi(
-            35, channels, transformer_blocks, transformer_heads, lr,
+            35, channels, transformer_blocks, transformer_heads,
             config.get('autoregression_steps_epochs'),
             optimizer_config=optimizer_config,
         )

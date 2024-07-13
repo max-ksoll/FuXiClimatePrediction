@@ -3,17 +3,23 @@ from typing import Dict
 import torch
 
 
-def weighted_rmse(forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torch.Tensor) -> torch.Tensor:
+def weighted_rmse(
+    forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torch.Tensor
+) -> torch.Tensor:
     mask = ~torch.isnan(labels)
-    error = (forecast - labels)
+    error = forecast - labels
     error[~mask] = 0
-    weighted_squared_error = (error ** 2) * lat_weights
+    weighted_squared_error = (error**2) * lat_weights
     rmse = torch.sqrt(weighted_squared_error.sum() / mask.sum())
     return rmse
 
 
-def weighted_acc(forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torch.Tensor,
-                 clima_mean: torch.Tensor) -> torch.Tensor:
+def weighted_acc(
+    forecast: torch.Tensor,
+    labels: torch.Tensor,
+    lat_weights: torch.Tensor,
+    clima_mean: torch.Tensor,
+) -> torch.Tensor:
     # input (bs, auto, 25, 121, 240)
     # clim (25, 121, 240)
     # lat_weights (121, 1)
@@ -26,10 +32,10 @@ def weighted_acc(forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torc
     label_error[~mask] = 0
 
     forecast_mean_error = (
-            torch.sum(forecast_error, dim=(-1, -2))[:, :, :, None, None] / mask.sum()
+        torch.sum(forecast_error, dim=(-1, -2))[:, :, :, None, None] / mask.sum()
     )
     label_mean_error = (
-            torch.sum(label_error, dim=(-1, -2))[:, :, :, None, None] / mask.sum()
+        torch.sum(label_error, dim=(-1, -2))[:, :, :, None, None] / mask.sum()
     )
 
     upper = torch.mean(
@@ -48,13 +54,16 @@ def weighted_acc(forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torc
     return torch.mean(upper / (lower_left * lower_right))
 
 
-def weighted_mae(forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torch.Tensor) -> torch.Tensor:
+def weighted_mae(
+    forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torch.Tensor
+) -> torch.Tensor:
     mask = ~torch.isnan(labels)
     error = forecast - labels
     weighted_error = torch.abs(error) * lat_weights
     weighted_error[~mask] = 0
     mae = weighted_error.sum() / mask.sum()
     return mae
+
 
 # def calculate_metrics(forecast: torch.Tensor, labels: torch.Tensor, lat_weights: torch.Tensor,
 #                       clima_mean: torch.Tensor) -> Dict[str, torch.Tensor]:

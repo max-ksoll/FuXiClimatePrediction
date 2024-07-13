@@ -15,21 +15,24 @@ from src.Dataset.dimensions import (
     ORAS_VARIABLES,
     ERA_SURFACE_VARIABLES,
     ERA_ATMOS_VARIABLES,
-    TIME_DIMENSION_NAME,
-    LAT, METRICS_ARRAY,
+    LAT,
+    METRICS_ARRAY,
 )
+from src.global_vars import TIME_DIMENSION_NAME
 
 logger = logging.getLogger("ERA5 Dataset")
 
 
 class FuXiDataset(Dataset):
     def __init__(
-            self,
-            dataset_path: os.PathLike | str,
-            means_file: os.PathLike | str,
-            max_autoregression_steps: int = 1,
+        self,
+        dataset_path: os.PathLike | str,
+        means_file: os.PathLike | str,
+        max_autoregression_steps: int = 1,
     ):
-        logger.info(f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}")
+        logger.info(
+            f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}"
+        )
         super(FuXiDataset, self).__init__()
         store = zarr.DirectoryStore(dataset_path)
         self.sources = zarr.group(store=store)
@@ -56,10 +59,10 @@ class FuXiDataset(Dataset):
 
     def init_max_min(self):
         logger.debug("Loading Min Tensor")
-        self.min = self.get_from_means_file('min')
+        self.min = self.get_from_means_file("min")
 
         logger.debug("Loading Max Tensor")
-        max_val = self.get_from_means_file('max')
+        max_val = self.get_from_means_file("max")
 
         self.max_minus_min = max_val - self.min
         self.min = self.min[:, None, None]
@@ -124,11 +127,25 @@ class FuXiDataset(Dataset):
 
     def get_from_means_file(self, mode: str):
         mode_idx = METRICS_ARRAY.index(mode)
-        return torch.cat([
-            torch.stack([torch.tensor(np.array(self.means[var.name][mode_idx])) for var in self.surface_vars], 0),
-            torch.stack([torch.tensor(np.array(self.means[var.name][mode_idx, :]))
-                         for var in self.atmos_vars], 0).flatten()
-        ], dim=0)
+        return torch.cat(
+            [
+                torch.stack(
+                    [
+                        torch.tensor(np.array(self.means[var.name][mode_idx]))
+                        for var in self.surface_vars
+                    ],
+                    0,
+                ),
+                torch.stack(
+                    [
+                        torch.tensor(np.array(self.means[var.name][mode_idx, :]))
+                        for var in self.atmos_vars
+                    ],
+                    0,
+                ).flatten(),
+            ],
+            dim=0,
+        )
 
 
 if __name__ == "__main__":

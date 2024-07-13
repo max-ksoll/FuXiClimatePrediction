@@ -4,14 +4,7 @@ from typing import TypeVar, Generic, Optional, List
 
 import numpy as np
 
-LEVEL_VAR_ATTRIBUTE = ["time", "level", "latitude", "longitude"]
-MEAN_LEVEL_VAR_ATTRIBUTE = ["metric", "level"]
-SURFACE_VAR_ATTRIBUTE = ["time", "latitude", "longitude"]
-MEAN_SURFACE_VAR_ATTRIBUTE = ["metric"]
-
-TIME_DIMENSION_NAME = "time"
-
-T = TypeVar("T")
+from src.global_vars import T
 
 
 class VariableType(Enum):
@@ -77,8 +70,8 @@ LON = Dimension[np.float64](
 )
 LEVEL = Dimension[np.float32]("level", 5, -99, min_val=0, max_val=4, era_name="level")
 # Die Reihenfolge der Values darf nicht geändert werden
-METRICS_ARRAY = ['min', 'max', 'mean', 'std']
-METRICS = Dimension[np.string_]('metric', 4, "", values=METRICS_ARRAY)
+METRICS_ARRAY = ["min", "max", "mean", "std"]
+METRICS = Dimension[np.strings]("metric", 4, "", values=METRICS_ARRAY)
 
 # ORAS
 COMPLETE_OCEAN_HEAT_CONTENT = Variable(

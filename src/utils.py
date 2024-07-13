@@ -10,6 +10,7 @@ from scipy.ndimage import zoom
 timing_logger = logging.getLogger("Timing Logger")
 utils_logger = logging.getLogger(__name__)
 
+
 def log_exec_time(func: Callable):
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -109,8 +110,8 @@ def config_epoch_to_autoregression_steps(config: Dict[str, int], epoch: int) -> 
 
 def get_dataloader_params(batch_size: int):
     return {
-        'batch_size': batch_size,
-        'shuffle': False,
-        'num_workers': os.cpu_count() // 2,
-        'pin_memory': True
+        "batch_size": batch_size,
+        "shuffle": False,
+        "num_workers": os.cpu_count() // 2,
+        "pin_memory": True,
     }

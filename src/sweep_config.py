@@ -17,7 +17,12 @@ def get_sweep():
 def get_parameters_dict():
     parameters_dict = {
         "batch_size": {"value": 1},
-        "init_learning_rate": {"value": 2.5e-4},
+        "optimizer_config_lr": {"values": [1e-4, 2.5e-4]},
+        "optimizer_config_betas": {"value": [(0.9, 0.95)]},
+        "optimizer_config_weight_decay": {"value": 0.1},
+        "optimizer_config_T_0": {"value": 2},
+        "optimizer_config_eta_min": {"value": 1e-7},
+        "optimizer_config_T_mult": {"value": 2},
         "devices": {"value": 1},
         "num_nodes": {"value": 1},
         "model_parameter": {
@@ -28,12 +33,10 @@ def get_parameters_dict():
                 1: 1,  # until epoch n -> m autoregression step
                 5: 2,
                 10: 4,
-                -1: 6
+                -1: 6,
             }
         },
-        "max_epochs": {
-            "value": 50
-        }
+        "max_epochs": {"value": 50},
     }
     return parameters_dict
 

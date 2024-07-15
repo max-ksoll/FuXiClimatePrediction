@@ -56,19 +56,20 @@ class FuXi(L.LightningModule):
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
         lat_weights = args[0][1]
-        _, out = self.model.step(
+        out = self.model.step(
             ts,
             lat_weights,
             autoregression_steps=self.autoregression_steps,
-            return_out=True,
-        )
+            return_out=True, return_loss=False
+        )['output']
         return out
 
     def training_step(self, batch, batch_idx) -> torch.Tensor:
         ts, lat_weights = batch
         loss = self.model.step(
-            ts, lat_weights, autoregression_steps=self.autoregression_steps
-        )
+            ts, lat_weights, autoregression_steps=self.autoregression_steps,
+            return_loss=True, return_out=False
+        )['loss']
         self.log("train_loss", loss)
         return loss
 
@@ -76,12 +77,14 @@ class FuXi(L.LightningModule):
         ts, lat_weights = batch
         label = torch.clone(ts[:, 2:, :, :, :])
 
-        loss, outs = self.model.step(
+        returns = self.model.step(
             ts,
             lat_weights,
             autoregression_steps=self.autoregression_steps,
-            return_out=True,
         )
+        loss = returns['loss']
+        outs = returns['output']
+
         self.log("val_loss", loss)
 
         ret_dict = dict()

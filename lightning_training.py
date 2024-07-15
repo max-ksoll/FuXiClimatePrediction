@@ -12,7 +12,6 @@ import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
-from src.utils import get_dataloader_params, config_epoch_to_autoregression_steps
 from src.wandb_utils import get_optimizer_config
 
 dotenv.load_dotenv()
@@ -73,8 +72,12 @@ def train():
             max_epochs=config.get('max_epochs', None)
         )
 
+        data_dir = os.environ.get('DATA_PATH', False)
+        if not data_dir:
+            raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
+
         dm = FuXiDataModule(
-            data_dir="/Users/ksoll/git/FuXiClimatePrediction/data",
+            data_dir=data_dir,
             start_year=1958,
             end_year=1959,
             val_start_year=1960,

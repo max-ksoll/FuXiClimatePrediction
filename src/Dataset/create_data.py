@@ -116,9 +116,7 @@ class DataDownloader:
             downloader_logger.debug(
                 f"Downloading ERA5 Surface Variables for year {year}"
             )
-            file_path = os.path.join(
-                self.download_path, f"era5_surface_{year}.nc"
-            )
+            file_path = os.path.join(self.download_path, f"era5_surface_{year}.nc")
             self.cds_client.retrieve(
                 "reanalysis-era5-single-levels",
                 {
@@ -128,9 +126,37 @@ class DataDownloader:
                     "year": str(year),
                     "month": month,
                     "day": [
-                        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
-                        "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24",
-                        "25", "26", "27", "28", "29", "30", "31",
+                        "01",
+                        "02",
+                        "03",
+                        "04",
+                        "05",
+                        "06",
+                        "07",
+                        "08",
+                        "09",
+                        "10",
+                        "11",
+                        "12",
+                        "13",
+                        "14",
+                        "15",
+                        "16",
+                        "17",
+                        "18",
+                        "19",
+                        "20",
+                        "21",
+                        "22",
+                        "23",
+                        "24",
+                        "25",
+                        "26",
+                        "27",
+                        "28",
+                        "29",
+                        "30",
+                        "31",
                     ],
                     "time": ["00:00", "06:00", "12:00", "18:00"],
                     "grid": [1.5, 1.5],
@@ -147,7 +173,9 @@ class DataDownloader:
         years = utils.get_years_as_strings(self.start_year, self.end_year, 15)
         zip_paths = []
         for year_subset in years:
-            file_path = os.path.join(self.download_path, f"oras_{year_subset[0]}_{year_subset[-1]}.zip")
+            file_path = os.path.join(
+                self.download_path, f"oras_{year_subset[0]}_{year_subset[-1]}.zip"
+            )
             self.cds_client.retrieve(
                 "reanalysis-oras5",
                 {
@@ -220,7 +248,7 @@ class DataConverter:
             ds = xr.open_dataset(path)
             for variable in ERA_SURFACE_VARIABLES:
                 converter_logger.debug(f"Writing ERA5 Surface for {variable.name}")
-                year = ds['time'].values.astype('datetime64[Y]').astype(str)[0]
+                year = ds["time"].values.astype("datetime64[Y]").astype(str)[0]
                 for month in range(1, 13):
                     converter_logger.debug(
                         f"Writing ERA5 Surface for {variable} at time {year}-{month}"

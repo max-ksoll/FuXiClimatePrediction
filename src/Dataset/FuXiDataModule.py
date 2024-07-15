@@ -14,13 +14,14 @@ logger = logging.getLogger(__name__)
 
 class FuXiDataModule(L.LightningDataModule):
     def __init__(
-            self, data_dir: os.PathLike | str,
-            start_year: int,
-            end_year: int,
-            val_start_year: int,
-            val_end_year: int,
-            config: Config,
-            skip_data_preparing: bool = False,
+        self,
+        data_dir: os.PathLike | str,
+        start_year: int,
+        end_year: int,
+        val_start_year: int,
+        val_end_year: int,
+        config: Config,
+        skip_data_preparing: bool = False,
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -28,12 +29,18 @@ class FuXiDataModule(L.LightningDataModule):
         self.end_year = end_year
         self.val_start_year = val_start_year
         self.val_end_year = val_end_year
-        self.train_ds_path = os.path.join(data_dir, f'{start_year}_{end_year}.zarr')
-        self.train_mean_path = os.path.join(data_dir, f'mean_{start_year}_{end_year}.zarr')
-        self.val_ds_path = os.path.join(data_dir, f'{val_start_year}_{val_end_year}.zarr')
-        self.val_mean_path = os.path.join(data_dir, f'mean_{val_start_year}_{val_end_year}.zarr')
-        self.batch_size = config.get('batch_size', 1)
-        self.autoregression_steps_epoch = config.get('autoregression_steps_epochs')
+        self.train_ds_path = os.path.join(data_dir, f"{start_year}_{end_year}.zarr")
+        self.train_mean_path = os.path.join(
+            data_dir, f"mean_{start_year}_{end_year}.zarr"
+        )
+        self.val_ds_path = os.path.join(
+            data_dir, f"{val_start_year}_{val_end_year}.zarr"
+        )
+        self.val_mean_path = os.path.join(
+            data_dir, f"mean_{val_start_year}_{val_end_year}.zarr"
+        )
+        self.batch_size = config.get("batch_size", 1)
+        self.autoregression_steps_epoch = config.get("autoregression_steps_epochs")
         self.skip_data_preparing = skip_data_preparing
         self.train_ds = None
         self.val_ds = None
@@ -54,14 +61,22 @@ class FuXiDataModule(L.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(
-            FuXiDataset(self.train_ds_path, self.train_mean_path, self.trainer.model.autoregression_steps),
-            **get_dataloader_params(self.batch_size)
+            FuXiDataset(
+                self.train_ds_path,
+                self.train_mean_path,
+                self.trainer.model.autoregression_steps,
+            ),
+            **get_dataloader_params(self.batch_size),
         )
 
     def val_dataloader(self):
         return DataLoader(
-            FuXiDataset(self.val_ds_path, self.val_mean_path, self.trainer.model.autoregression_steps),
-            **get_dataloader_params(self.batch_size)
+            FuXiDataset(
+                self.val_ds_path,
+                self.val_mean_path,
+                self.trainer.model.autoregression_steps,
+            ),
+            **get_dataloader_params(self.batch_size),
         )
 
     def test_dataloader(self):

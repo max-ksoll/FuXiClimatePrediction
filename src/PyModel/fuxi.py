@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class FuXi(torch.nn.Module):
     def __init__(
-            self, input_var, channels, transformer_block_count, lat, long, heads=8
+        self, input_var, channels, transformer_block_count, lat, long, heads=8
     ):
         super(FuXi, self).__init__()
         logger.info("Creating FuXi Model")
@@ -38,9 +38,12 @@ class FuXi(torch.nn.Module):
         return self.fc(x)
 
     def step(
-            self,
-            timeseries, lat_weights, autoregression_steps=1,
-            return_out=True, return_loss=True
+        self,
+        timeseries,
+        lat_weights,
+        autoregression_steps=1,
+        return_out=True,
+        return_loss=True,
     ) -> Dict[str, torch.Tensor]:
         if autoregression_steps > timeseries.shape[1] - 2:
             raise ValueError(
@@ -66,12 +69,12 @@ class FuXi(torch.nn.Module):
             step_mask = mask[:, step + 2, :, :, :]
             if return_loss:
                 loss += (
-                        torch.sum(
-                            torch.abs(timeseries[:, step + 2, :, :, :] - out)
-                            * lat_weights
-                            * step_mask
-                        )
-                        / step_mask.sum()
+                    torch.sum(
+                        torch.abs(timeseries[:, step + 2, :, :, :] - out)
+                        * lat_weights
+                        * step_mask
+                    )
+                    / step_mask.sum()
                 )
 
         return_dict = {}

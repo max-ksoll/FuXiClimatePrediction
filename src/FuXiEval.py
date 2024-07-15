@@ -8,16 +8,16 @@ from src.PyModel.fuxi_ligthning import FuXi
 
 class FuXiEvaluator:
     def __init__(
-            self,
-            model: FuXi,
-            model_path: os.PathLike | str,
-            dataset: FuXiDataset,
-            data_dir: os.PathLike | str,
-            start_year: int,
-            end_year: int,
-            dataset_path: os.PathLike | str,
-            dataset_mean_path: os.PathLike | str,
-            batch_size: int = 1
+        self,
+        model: FuXi,
+        model_path: os.PathLike | str,
+        dataset: FuXiDataset,
+        data_dir: os.PathLike | str,
+        start_year: int,
+        end_year: int,
+        dataset_path: os.PathLike | str,
+        dataset_mean_path: os.PathLike | str,
+        batch_size: int = 1,
     ):
         if not model and not model_path:
             raise ValueError("Either a model or a model path is required.")
@@ -29,9 +29,7 @@ class FuXiEvaluator:
         elif data_dir and end_year and start_year:
             ds_path = os.path.join(data_dir, f"{start_year}_{end_year}.zarr")
             ds_mean_path = os.path.join(data_dir, f"mean_{start_year}_{end_year}.zarr")
-            self.dataset = FuXiDataset(
-
-            )
+            self.dataset = FuXiDataset()
         self.batch_size = batch_size
 
     def evaluate(self):
@@ -45,4 +43,6 @@ class FuXiEvaluator:
 
 if __name__ == "__main__":
     ckpt_path: str = "/Users/ksoll/git/FuXiClimatePrediction/models/epoch=0-step=9.ckpt"
-    eval = FuXiEvaluator(model_path=ckpt_path, )
+    eval = FuXiEvaluator(
+        model_path=ckpt_path,
+    )

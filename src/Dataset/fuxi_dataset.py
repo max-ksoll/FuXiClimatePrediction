@@ -36,7 +36,9 @@ class FuXiDataset(Dataset):
             raise ValueError(f"Dataset path {dataset_path} does not exist")
         if not os.path.exists(means_file):
             raise ValueError(f"Means file {means_file} does not exist")
-        logger.info(f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}")
+        logger.info(
+            f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}"
+        )
         super(FuXiDataset, self).__init__()
         store = zarr.DirectoryStore(dataset_path)
         self.sources = zarr.group(store=store)

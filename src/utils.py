@@ -55,7 +55,9 @@ def get_date_strings(start_year: int, end_year: int) -> Tuple[List[str], List[in
     return date_strings, decades
 
 
-def get_years_as_strings(start_year: int, end_year: int, wrap_n_elements_in_array=-1) -> List[List[str]]:
+def get_years_as_strings(
+    start_year: int, end_year: int, wrap_n_elements_in_array=-1
+) -> List[List[str]]:
     if wrap_n_elements_in_array > 0:
         res = []
         tmp = []

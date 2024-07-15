@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 
 class FuXi(L.LightningModule):
     def __init__(
-            self,
-            input_vars: int,
-            channels: int,
-            transformer_blocks: int,
-            transformer_heads: int,
-            config: Dict[str, int],
-            optimizer_config: Dict[str, Any],
+        self,
+        input_vars: int,
+        channels: int,
+        transformer_blocks: int,
+        transformer_heads: int,
+        config: Dict[str, int],
+        optimizer_config: Dict[str, Any],
     ):
         super().__init__()
         self.model: FuXiBase = FuXiBase(
@@ -32,9 +32,7 @@ class FuXi(L.LightningModule):
             LONG_DIM,
             heads=transformer_heads,
         )
-        self.autoregression_steps = config_epoch_to_autoregression_steps(
-            config, 0
-        )
+        self.autoregression_steps = config_epoch_to_autoregression_steps(config, 0)
 
         self.config = config
         self.optimizer_config = optimizer_config
@@ -45,8 +43,8 @@ class FuXi(L.LightningModule):
     def on_train_epoch_end(self) -> None:
         old_auto_steps = self.autoregression_steps
         if (
-                config_epoch_to_autoregression_steps(self.config, self.current_epoch)
-                != old_auto_steps
+            config_epoch_to_autoregression_steps(self.config, self.current_epoch)
+            != old_auto_steps
         ):
             logger.debug("End of Train Epoch: Setting new Autoregression steps")
             self.autoregression_steps = config_epoch_to_autoregression_steps(
@@ -60,16 +58,20 @@ class FuXi(L.LightningModule):
             ts,
             lat_weights,
             autoregression_steps=self.autoregression_steps,
-            return_out=True, return_loss=False
-        )['output']
+            return_out=True,
+            return_loss=False,
+        )["output"]
         return out
 
     def training_step(self, batch, batch_idx) -> torch.Tensor:
         ts, lat_weights = batch
         loss = self.model.step(
-            ts, lat_weights, autoregression_steps=self.autoregression_steps,
-            return_loss=True, return_out=False
-        )['loss']
+            ts,
+            lat_weights,
+            autoregression_steps=self.autoregression_steps,
+            return_loss=True,
+            return_out=False,
+        )["loss"]
         self.log("train_loss", loss)
         return loss
 
@@ -82,8 +84,8 @@ class FuXi(L.LightningModule):
             lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
-        loss = returns['loss']
-        outs = returns['output']
+        loss = returns["loss"]
+        outs = returns["output"]
 
         self.log("val_loss", loss)
 

@@ -4,6 +4,7 @@ import os
 import zarr
 
 from src.Dataset.dimensions import *
+from src.global_vars import *
 from src.utils import get_metrics_array
 
 logger = logging.getLogger("Zarr Handler")

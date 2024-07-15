@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import time
@@ -54,8 +55,19 @@ def get_date_strings(start_year: int, end_year: int) -> Tuple[List[str], List[in
     return date_strings, decades
 
 
-def get_years_as_strings(start_year: int, end_year: int) -> List[str]:
-    return [str(year) for year in range(start_year, end_year + 1)]
+def get_years_as_strings(start_year: int, end_year: int, wrap_n_elements_in_array=-1) -> List[List[str]]:
+    if wrap_n_elements_in_array > 0:
+        res = []
+        tmp = []
+        for year_idx, year in enumerate(range(start_year, end_year + 1)):
+            if not year_idx % wrap_n_elements_in_array and len(tmp) > 0:
+                res.append(copy.copy(tmp))
+                tmp.clear()
+            tmp.append(str(year))
+        if len(tmp) > 0:
+            res.append(copy.copy(tmp))
+        return res
+    return [[str(year) for year in range(start_year, end_year + 1)]]
 
 
 def get_month_as_strings(start_year: int, end_year: int) -> List[str]:

@@ -30,9 +30,13 @@ class FuXiDataset(Dataset):
         means_file: os.PathLike | str,
         max_autoregression_steps: int = 1,
     ):
-        logger.info(
-            f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}"
-        )
+        self.dataset_path = dataset_path
+        self.means_file = means_file
+        if not os.path.exists(dataset_path):
+            raise ValueError(f"Dataset path {dataset_path} does not exist")
+        if not os.path.exists(means_file):
+            raise ValueError(f"Means file {means_file} does not exist")
+        logger.info(f"Creating FuXi Dataset with Autoregression: {max_autoregression_steps}")
         super(FuXiDataset, self).__init__()
         store = zarr.DirectoryStore(dataset_path)
         self.sources = zarr.group(store=store)
@@ -40,8 +44,19 @@ class FuXiDataset(Dataset):
         store = zarr.DirectoryStore(means_file)
         self.means = zarr.group(store=store)
 
+        self.set_autoregression_steps(max_autoregression_steps)
+
+        self.surface_vars = ORAS_VARIABLES + ERA_SURFACE_VARIABLES
+        self.atmos_vars = ERA_ATMOS_VARIABLES
+        self.lat_weights = self.get_latitude_weights()[:, None]
+
+        self.init_max_min()
+
+    def set_autoregression_steps(self, max_autoregression_steps: int):
         self.max_autoregression_steps = max_autoregression_steps + 2
+
         logger.debug(f"Retriving {self.max_autoregression_steps} items with every call")
+
         times = np.array(self.sources[TIME_DIMENSION_NAME])
         self.idxs = np.arange(self.sources[TIME_DIMENSION_NAME].shape[0])[times]
         if len(self.idxs) > 0:
@@ -50,12 +65,6 @@ class FuXiDataset(Dataset):
             logger.debug(f"Possible Idxs: {self.idxs}")
         self.len = self.idxs.shape[0]
         logger.debug(f"Number of Examples in DS {self.len}")
-
-        self.surface_vars = ORAS_VARIABLES + ERA_SURFACE_VARIABLES
-        self.atmos_vars = ERA_ATMOS_VARIABLES
-        self.lat_weights = self.get_latitude_weights()[:, None]
-
-        self.init_max_min()
 
     def init_max_min(self):
         logger.debug("Loading Min Tensor")

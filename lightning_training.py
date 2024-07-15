@@ -2,23 +2,21 @@ import logging
 import os
 
 import dotenv
-import pytorch_lightning as L
+import lightning as L
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
-from pytorch_lightning.loggers import WandbLogger
-from torch.utils.data import DataLoader
-from pytorch_lightning.strategies import DDPStrategy
+from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.strategies import DDPStrategy
 
 import wandb
-from src.Dataset.fuxi_dataset import FuXiDataset
+from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
-from src.utils import get_dataloader_params, config_epoch_to_autoregression_steps
 from src.wandb_utils import get_optimizer_config
 
 dotenv.load_dotenv()
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 device = 'auto'
@@ -35,26 +33,20 @@ def train():
         transformer_blocks = config.get('model_parameter')['transformer_blocks']
         transformer_heads = config.get('model_parameter')['heads']
         optimizer_config = get_optimizer_config()
-        base_path = os.path.dirname(__file__)
+
         model = FuXi(
-            35,
-            channels=channels,
-            transformer_blocks=transformer_blocks,
-            transformer_heads=transformer_heads,
-            autoregression_steps_config=config.get('autoregression_steps_epochs'),
-            train_ds_path=os.environ.get('TRAIN_DS_PATH', os.path.join(base_path, 'data/1958_1958.zarr')),
-            train_mean_ds_path=os.environ.get('TRAIN_MEAN_DS_PATH', os.path.join(base_path, 'data/mean_1958_1958.zarr')),
-            val_ds_path=os.environ.get('VAL_DS_PATH', os.path.join(base_path, 'data/1958_1958.zarr')),
-            val_mean_ds_path=os.environ.get('VAL_MEAN_DS_PATH', os.path.join(base_path, 'data/mean_1958_1958.zarr')),
-            batch_size=config.get('batch_size'),
+            35, channels, transformer_blocks, transformer_heads,
+            config.get('autoregression_steps_epochs'),
             optimizer_config=optimizer_config,
         )
 
         wandb_logger = WandbLogger(id=run.id, resume='allow')
         wandb_logger.watch(model, log_freq=100)
-        checkpoint_callback = ModelCheckpoint(dirpath=os.environ.get('MODEL_DIR', './models'),
-                                              save_on_train_epoch_end=True,
-                                              save_top_k=-1)
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=os.environ.get('MODEL_DIR', './models'),
+            save_on_train_epoch_end=True,
+            save_top_k=-1
+        )
 
         if dotenv.dotenv_values().get('MULTI_GPU', False):
             strategy = DDPStrategy(find_unused_parameters=False)
@@ -80,7 +72,21 @@ def train():
             max_epochs=config.get('max_epochs', None)
         )
 
-        trainer.fit(model=model)
+        data_dir = os.environ.get('DATA_PATH', False)
+        if not data_dir:
+            raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
+
+        dm = FuXiDataModule(
+            data_dir=data_dir,
+            start_year=1958,
+            end_year=1959,
+            val_start_year=1960,
+            val_end_year=1960,
+            config=config,
+            skip_data_preparing=True,
+        )
+
+        trainer.fit(model, datamodule=dm)
 
         wandb_logger.experiment.unwatch(model)
 

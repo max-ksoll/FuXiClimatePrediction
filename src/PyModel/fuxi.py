@@ -3,14 +3,14 @@ from torchvision.models.swin_transformer import SwinTransformerBlockV2
 from torch import nn
 import logging
 from torchvision.ops import Permute
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict
 
 logger = logging.getLogger(__name__)
 
 
 class FuXi(torch.nn.Module):
     def __init__(
-        self, input_var, channels, transformer_block_count, lat, long, heads=8
+            self, input_var, channels, transformer_block_count, lat, long, heads=8
     ):
         super(FuXi, self).__init__()
         logger.info("Creating FuXi Model")
@@ -38,8 +38,10 @@ class FuXi(torch.nn.Module):
         return self.fc(x)
 
     def step(
-        self, timeseries, lat_weights, autoregression_steps=1, return_out=False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+            self,
+            timeseries, lat_weights, autoregression_steps=1,
+            return_out=True, return_loss=True
+    ) -> Dict[str, torch.Tensor]:
         if autoregression_steps > timeseries.shape[1] - 2:
             raise ValueError(
                 "autoregression_steps can't be greater than number of samples"
@@ -62,20 +64,24 @@ class FuXi(torch.nn.Module):
 
             # Maske für die aktuelle Zeitschritt anwenden
             step_mask = mask[:, step + 2, :, :, :]
-            loss += (
-                torch.sum(
-                    torch.abs(timeseries[:, step + 2, :, :, :] - out)
-                    * lat_weights
-                    * step_mask
+            if return_loss:
+                loss += (
+                        torch.sum(
+                            torch.abs(timeseries[:, step + 2, :, :, :] - out)
+                            * lat_weights
+                            * step_mask
+                        )
+                        / step_mask.sum()
                 )
-                / step_mask.sum()
-            )
 
+        return_dict = {}
         if return_out:
             outputs = torch.stack(outputs, 1)
-            return loss, outputs
+            return_dict["output"] = outputs
 
-        return loss / autoregression_steps
+        if return_loss:
+            return_dict["loss"] = loss / autoregression_steps
+        return return_dict
 
 
 class SpaceTimeCubeEmbedding(nn.Module):

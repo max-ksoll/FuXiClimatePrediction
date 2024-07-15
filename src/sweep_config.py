@@ -3,6 +3,7 @@ from datetime import datetime
 import yaml
 
 import wandb
+from pydantic import BaseModel
 
 
 def get_sweep():

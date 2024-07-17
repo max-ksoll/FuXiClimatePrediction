@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 import cdsapi
@@ -21,7 +22,12 @@ from src.Dataset.dimensions import (
 )
 from src.Dataset.regridding import transform_tripolar_to_lat_lon
 from src.Dataset.zarr_handler import ZarrHandler
-from src.global_vars import ORAS_LAT_LON_GRID_SIZE, LAT_LON_GRID_SIZE, ERA5_VARIABLES
+from src.global_vars import (
+    ORAS_LAT_LON_GRID_SIZE,
+    LAT_LON_GRID_SIZE,
+    ERA5_VARIABLES,
+    ORAS5_VARIABLES,
+)
 from src.utils import log_exec_time, get_nc_files, resize_data
 
 downloader_logger = logging.getLogger("Data Downloader")
@@ -57,9 +63,14 @@ class DataDownloader:
             return self.map_nc_files()
 
         os.makedirs(self.download_path, exist_ok=True)
-        self.download_oras_data()
-        self.download_era5_surface_data()
-        self.download_era5_atmospheric_data()
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            futures.append(executor.submit(self.download_oras_data))
+            futures.append(executor.submit(self.download_era5_surface_data))
+            futures.append(executor.submit(self.download_era5_atmospheric_data))
+
+            for future in as_completed(futures):
+                future.result()
 
     def map_nc_files(self):
         nc_files = set(
@@ -81,90 +92,104 @@ class DataDownloader:
         downloader_logger.info("Downloading ERA5 Atmospheric Data")
         paths = []
         decade_strings, decades = utils.get_date_strings(self.start_year, self.end_year)
-        for idx in tqdm(range(len(decade_strings))):
-            downloader_logger.debug(
-                f"Downloading ERA5 Atmospheric for decade: {decades[idx]}"
-            )
-            file_path = os.path.join(
-                self.download_path, f"era5_atmospheric_{decades[idx]}.nc"
-            )
-            self.cds_client.retrieve(
-                "reanalysis-era5-complete",
-                {
-                    "class": "ea",
-                    "date": decade_strings[idx],
-                    "expver": "1",
-                    "levelist": "200/300/500/850/1000",
-                    "levtype": "pl",
-                    "param": "129/130/131/132/133",
-                    "stream": "moda",
-                    "type": "an",
-                    "format": "netcdf",
-                    "grid": [LAT_LON_GRID_SIZE[0], LAT_LON_GRID_SIZE[1]],
-                },
-                file_path,
-            )
-            paths.append(file_path)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
+            for idx in range(len(decade_strings)):
+                futures.append(
+                    executor.submit(
+                        self._download_era5_atmos_single,
+                        decade_strings[idx],
+                        decades[idx],
+                    )
+                )
+            for future in as_completed(futures):
+                paths.append(future.result())
         self.era_atmos_paths = paths
+
+    def _download_era5_atmos_single(self, decade_string, decade):
+        file_path = os.path.join(self.download_path, f"era5_atmospheric_{decade}.nc")
+        self.cds_client.retrieve(
+            "reanalysis-era5-complete",
+            {
+                "class": "ea",
+                "date": decade_string,
+                "expver": "1",
+                "levelist": "200/300/500/850/1000",
+                "levtype": "pl",
+                "param": "129/130/131/132/133",
+                "stream": "moda",
+                "type": "an",
+                "format": "netcdf",
+                "grid": [LAT_LON_GRID_SIZE[0], LAT_LON_GRID_SIZE[1]],
+            },
+            file_path,
+        )
+        return file_path
 
     @log_exec_time
     def download_era5_surface_data(self):
         downloader_logger.info("Downloading ERA5 Surface Variables")
         paths = []
         month = utils.get_month_as_strings(self.start_year, self.end_year)
-        for year in utils.get_years_as_strings(self.start_year, self.end_year)[0]:
-            downloader_logger.debug(
-                f"Downloading ERA5 Surface Variables for year {year}"
-            )
-            file_path = os.path.join(self.download_path, f"era5_surface_{year}.nc")
-            self.cds_client.retrieve(
-                "reanalysis-era5-single-levels",
-                {
-                    "product_type": "reanalysis",
-                    "format": "netcdf",
-                    "variable": [ERA5_VARIABLES],
-                    "year": str(year),
-                    "month": month,
-                    "day": [
-                        "01",
-                        "02",
-                        "03",
-                        "04",
-                        "05",
-                        "06",
-                        "07",
-                        "08",
-                        "09",
-                        "10",
-                        "11",
-                        "12",
-                        "13",
-                        "14",
-                        "15",
-                        "16",
-                        "17",
-                        "18",
-                        "19",
-                        "20",
-                        "21",
-                        "22",
-                        "23",
-                        "24",
-                        "25",
-                        "26",
-                        "27",
-                        "28",
-                        "29",
-                        "30",
-                        "31",
-                    ],
-                    "time": ["00:00", "06:00", "12:00", "18:00"],
-                    "grid": [1.5, 1.5],
-                },
-                file_path,
-            )
-            paths.append(file_path)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
+            for year in utils.get_years_as_strings(self.start_year, self.end_year)[0]:
+                futures.append(
+                    executor.submit(self._download_era5_surface_single, year, month)
+                )
+            for future in as_completed(futures):
+                paths.append(future.result())
         self.era_surface_paths = paths
+
+    def _download_era5_surface_single(self, year, month):
+        file_path = os.path.join(self.download_path, f"era5_surface_{year}.nc")
+        self.cds_client.retrieve(
+            "reanalysis-era5-single-levels",
+            {
+                "product_type": "reanalysis",
+                "format": "netcdf",
+                "variable": ERA5_VARIABLES,
+                "year": str(year),
+                "month": month,
+                "day": [
+                    "01",
+                    "02",
+                    "03",
+                    "04",
+                    "05",
+                    "06",
+                    "07",
+                    "08",
+                    "09",
+                    "10",
+                    "11",
+                    "12",
+                    "13",
+                    "14",
+                    "15",
+                    "16",
+                    "17",
+                    "18",
+                    "19",
+                    "20",
+                    "21",
+                    "22",
+                    "23",
+                    "24",
+                    "25",
+                    "26",
+                    "27",
+                    "28",
+                    "29",
+                    "30",
+                    "31",
+                ],
+                "time": ["00:00", "06:00", "12:00", "18:00"],
+                "grid": [1.5, 1.5],
+            },
+            file_path,
+        )
+        return file_path
 
     @log_exec_time
     def download_oras_data(self):
@@ -172,27 +197,14 @@ class DataDownloader:
         month = utils.get_month_as_strings(self.start_year, self.end_year)
         years = utils.get_years_as_strings(self.start_year, self.end_year, 15)
         zip_paths = []
-        for year_subset in years:
-            file_path = os.path.join(
-                self.download_path, f"oras_{year_subset[0]}_{year_subset[-1]}.zip"
-            )
-            self.cds_client.retrieve(
-                "reanalysis-oras5",
-                {
-                    "format": "zip",
-                    "product_type": "consolidated",
-                    "vertical_resolution": "single_level",
-                    "variable": [
-                        "ocean_heat_content_for_the_total_water_column",
-                        "ocean_heat_content_for_the_upper_300m",
-                    ],
-                    "year": year_subset,
-                    "month": month,
-                    # 'grid': [1.5, 1.5]
-                },
-                file_path,
-            )
-            zip_paths.append(file_path)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
+            for year_subset in years:
+                futures.append(
+                    executor.submit(self._download_oras_single, year_subset, month)
+                )
+            for future in as_completed(futures):
+                zip_paths.append(future.result())
         before = get_nc_files(self.download_path)
         downloader_logger.info(f"Unzipping ORAS Data")
         for file_path in zip_paths:
@@ -205,6 +217,25 @@ class DataDownloader:
         self.oras_paths = list(
             map(lambda x: os.path.join(self.download_path, x), list(after - before))
         )
+
+    def _download_oras_single(self, year_subset, month):
+        file_path = os.path.join(
+            self.download_path, f"oras_{year_subset[0]}_{year_subset[-1]}.zip"
+        )
+        self.cds_client.retrieve(
+            "reanalysis-oras5",
+            {
+                "format": "zip",
+                "product_type": "consolidated",
+                "vertical_resolution": "single_level",
+                "variable": ORAS5_VARIABLES,
+                "year": year_subset,
+                "month": month,
+                # 'grid': [1.5, 1.5]
+            },
+            file_path,
+        )
+        return file_path
 
 
 class DataConverter:

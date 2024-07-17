@@ -10,24 +10,40 @@ logger = logging.getLogger(__name__)
 
 class FuXi(torch.nn.Module):
     def __init__(
-        self, input_var, channels, transformer_block_count, lat, long, heads=8
+        self,
+        input_var,
+        channels,
+        transformer_block_count,
+        lat,
+        long,
+        heads=8,
+        raw_fc_layer=False,
     ):
         super(FuXi, self).__init__()
         logger.info("Creating FuXi Model")
         self.space_time_cube_embedding = SpaceTimeCubeEmbedding(input_var, channels)
         self.u_transformer = UTransformer(transformer_block_count, channels, heads)
         # TODO durch einen Linear ersetzen anstatt Linear pro Channel
-        self.fc = torch.nn.Sequential(
-            # put channel dim front
-            Permute([0, 2, 3, 1]),
-            torch.nn.Linear(channels, input_var),
-            # put lat dim front
-            Permute([0, 3, 2, 1]),
-            torch.nn.Linear(lat // 4, lat),
-            # put long dim front
-            Permute([0, 1, 3, 2]),
-            torch.nn.Linear(long // 4, long),
-        )
+        if raw_fc_layer:
+            self.fc = torch.nn.Sequential(
+                torch.nn.Flatten(start_dim=1, end_dim=-1),
+                torch.nn.Linear(
+                    channels * (lat // 4) * (long // 4), input_var * lat * long
+                ),
+                torch.nn.Unflatten(1, (input_var, lat, long)),
+            )
+        else:
+            self.fc = torch.nn.Sequential(
+                # put channel dim front
+                Permute([0, 2, 3, 1]),
+                torch.nn.Linear(channels, input_var),
+                # put lat dim front
+                Permute([0, 3, 2, 1]),
+                torch.nn.Linear(lat // 4, lat),
+                # put long dim front
+                Permute([0, 1, 3, 2]),
+                torch.nn.Linear(long // 4, long),
+            )
         self.modules = nn.ModuleList(
             [self.space_time_cube_embedding, self.u_transformer, self.fc]
         )

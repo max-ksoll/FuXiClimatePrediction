@@ -22,6 +22,7 @@ class FuXi(L.LightningModule):
         transformer_heads: int,
         config: Dict[str, int],
         optimizer_config: Dict[str, Any],
+        raw_fc_layer=False,
     ):
         super().__init__()
         self.model: FuXiBase = FuXiBase(
@@ -31,13 +32,18 @@ class FuXi(L.LightningModule):
             LAT_DIM,
             LONG_DIM,
             heads=transformer_heads,
+            raw_fc_layer=raw_fc_layer,
         )
         self.autoregression_steps = config_epoch_to_autoregression_steps(config, 0)
 
         self.config = config
         self.optimizer_config = optimizer_config
         self.save_hyperparameters(
-            "input_vars", "channels", "transformer_blocks", "transformer_heads"
+            "input_vars",
+            "channels",
+            "transformer_blocks",
+            "transformer_heads",
+            "raw_fc_layer",
         )
 
     def on_train_epoch_end(self) -> None:

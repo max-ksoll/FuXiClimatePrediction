@@ -79,11 +79,11 @@ def train():
         dm = FuXiDataModule(
             data_dir=data_dir,
             start_year=1958,
-            end_year=1959,
-            val_start_year=1960,
-            val_end_year=1960,
+            end_year=1968,
+            val_start_year=1969,
+            val_end_year=1970,
             config=config,
-            skip_data_preparing=True,
+            # skip_data_preparing=True,
         )
 
         trainer.fit(model, datamodule=dm)

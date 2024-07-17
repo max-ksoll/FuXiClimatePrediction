@@ -79,7 +79,7 @@ class FuXi(torch.nn.Module):
                 model_input = torch.stack([model_input[:, 1, :, :, :], out], dim=1)
             out = self.forward(model_input)
             if return_out:
-                outputs.append(out.detach().cpu())
+                outputs.append(out.detach())
 
             # Maske für die aktuelle Zeitschritt anwenden
             step_mask = mask[:, step + 2, :, :, :]

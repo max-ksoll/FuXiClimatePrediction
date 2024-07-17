@@ -83,7 +83,7 @@ def train():
             val_start_year=1969,
             val_end_year=1970,
             config=config,
-            # skip_data_preparing=True,
+            skip_data_preparing=True,
         )
 
         trainer.fit(model, datamodule=dm)

@@ -1,8 +1,9 @@
-from typing import Dict, Tuple
+from typing import Tuple
 
 import torch
 
 
+@torch.no_grad()
 def weighted_rmse(
     forecast: torch.Tensor,
     labels: torch.Tensor,
@@ -17,6 +18,7 @@ def weighted_rmse(
     return rmse
 
 
+@torch.no_grad()
 def weighted_acc(
     forecast: torch.Tensor,
     labels: torch.Tensor,
@@ -53,6 +55,7 @@ def weighted_acc(
     return torch.mean(upper / (lower_left * lower_right), dim=reduce_axis)
 
 
+@torch.no_grad()
 def weighted_mae(
     forecast: torch.Tensor,
     labels: torch.Tensor,

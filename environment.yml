@@ -1,0 +1,25 @@
+name: FuXiClimatePrediction
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  - zarr
+  - pandas
+  - jupyter
+  - tqdm
+  - python-dotenv
+  - wandb
+  - matplotlib
+  - cartopy
+  - xarray
+  - ipympl
+  - lightning
+  - cdsapi
+  - netcdf4
+  - scipy

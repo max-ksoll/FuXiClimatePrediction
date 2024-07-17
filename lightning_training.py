@@ -39,6 +39,7 @@ def train():
             config.get('autoregression_steps_epochs'),
             optimizer_config=optimizer_config,
         )
+        model = torch.compile(model, mode="reduce-overhead")
 
         wandb_logger = WandbLogger(id=run.id, resume='allow')
         wandb_logger.watch(model, log_freq=100)

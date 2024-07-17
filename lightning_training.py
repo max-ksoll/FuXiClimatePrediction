@@ -80,9 +80,9 @@ def train():
         dm = FuXiDataModule(
             data_dir=data_dir,
             start_year=1958,
-            end_year=1968,
-            val_start_year=1969,
-            val_end_year=1970,
+            end_year=1990,
+            val_start_year=1991,
+            val_end_year=2000,
             config=config,
             skip_data_preparing=True,
         )

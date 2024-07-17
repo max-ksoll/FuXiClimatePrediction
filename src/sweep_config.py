@@ -1,9 +1,6 @@
 from datetime import datetime
 
-import yaml
-
 import wandb
-from pydantic import BaseModel
 
 
 def get_sweep():
@@ -27,7 +24,7 @@ def get_parameters_dict():
         "devices": {"value": 1},
         "num_nodes": {"value": 1},
         "model_parameter": {
-            "value": {"channel": 32, "transformer_blocks": 2, "heads": 4}
+            "value": {"channel": 256, "transformer_blocks": 8, "heads": 8}
         },
         "autoregression_steps_epochs": {
             "value": {
@@ -39,7 +36,7 @@ def get_parameters_dict():
                 -1: 10,
             }
         },
-        "max_epochs": {"value": 100},
+        "max_epochs": {"value": 200},
     }
     return parameters_dict
 
@@ -50,6 +47,6 @@ def getSweepID():
     sweep_config["name"] = sweep_config["name"]
     sweep_id = wandb.sweep(
         sweep=sweep_config,
-        project="Test",
+        project="FuXiClimateFirstTests",
     )
     return sweep_id

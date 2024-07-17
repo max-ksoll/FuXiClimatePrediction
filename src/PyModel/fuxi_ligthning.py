@@ -1,14 +1,12 @@
 import logging
-from typing import Any, List
+from typing import Any, Dict
 
 import lightning as L
 
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.PyModel.score_torch import *
-from src.utils import config_epoch_to_autoregression_steps
-
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS, LAT_DIM, LONG_DIM
-from src.utils import config_epoch_to_autoregression_steps, get_dataloader_params
+from src.utils import config_epoch_to_autoregression_steps
 
 logger = logging.getLogger(__name__)
 

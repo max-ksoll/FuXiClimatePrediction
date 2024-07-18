@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import lru_cache
 from typing import Tuple
 
 import os
@@ -100,9 +101,7 @@ class FuXiDataset(Dataset):
         ]
         sources = torch.stack(sources, dim=0)
         # Normalization
-        logger.debug(f"Normalizing Data")
-        sources = (sources - self.min) / self.max_minus_min
-
+        sources = self.normalize(sources)
         logger.debug(
             f"Shape: {sources.shape}, Min: {np.nanmin(sources.numpy())}, Max: {np.nanmax(sources.numpy())}"
         )
@@ -157,6 +156,40 @@ class FuXiDataset(Dataset):
             ],
             dim=0,
         )
+
+    @lru_cache
+    def get_clima_mean(self) -> torch.Tensor:
+        return self.normalize(
+            torch.cat(
+                [
+                    torch.mean(
+                        torch.stack(
+                            [
+                                torch.tensor(np.array(self.sources[var.name]))
+                                for var in self.surface_vars
+                            ],
+                            0,
+                        ),
+                        dim=1,
+                    ),
+                    torch.mean(
+                        torch.stack(
+                            [
+                                torch.tensor(np.array(self.sources[var.name]))
+                                for var in self.atmos_vars
+                            ],
+                            0,
+                        ),
+                        dim=1,
+                    ).flatten(start_dim=0, end_dim=1),
+                ],
+                dim=0,
+            )
+        )
+
+    def normalize(self, inp) -> torch.Tensor:
+        logger.debug(f"Normalizing Data")
+        return (inp - self.min) / self.max_minus_min
 
 
 if __name__ == "__main__":

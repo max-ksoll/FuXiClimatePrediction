@@ -105,9 +105,7 @@ class FuXi(L.LightningModule):
                 outs,
                 label,
                 lat_weights,
-                self.trainer.train_dataloader.dataset.get_from_means_file("mean").to(
-                    outs
-                ),
+                self.trainer.train_dataloader.dataset.get_clima_mean().to(outs),
             )
             self.log("val_acc", acc)
             ret_dict["acc"] = acc

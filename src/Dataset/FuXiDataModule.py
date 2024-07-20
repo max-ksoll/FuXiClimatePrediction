@@ -7,7 +7,7 @@ from wandb import Config
 
 from src.Dataset.create_data import DataBuilder
 from src.Dataset.fuxi_dataset import FuXiDataset
-from src.utils import config_epoch_to_autoregression_steps, get_dataloader_params
+from src.utils import get_dataloader_params
 
 logger = logging.getLogger(__name__)
 

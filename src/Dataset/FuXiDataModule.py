@@ -69,12 +69,14 @@ class FuXiDataModule(L.LightningDataModule):
             **get_dataloader_params(self.batch_size),
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self, autoregression_steps=None):
+        if autoregression_steps is None:
+            autoregression_steps = self.trainer.model.autoregression_steps
         return DataLoader(
             FuXiDataset(
                 self.val_ds_path,
                 self.val_mean_path,
-                self.trainer.model.autoregression_steps,
+                autoregression_steps,
             ),
             **get_dataloader_params(self.batch_size),
         )

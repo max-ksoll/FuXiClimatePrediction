@@ -18,7 +18,7 @@ class FuXi(L.LightningModule):
         channels: int,
         transformer_blocks: int,
         transformer_heads: int,
-        config: Dict[str, int],
+        autoregression_config: Dict[str, int],
         optimizer_config: Dict[str, Any],
         raw_fc_layer=False,
     ):
@@ -32,9 +32,11 @@ class FuXi(L.LightningModule):
             heads=transformer_heads,
             raw_fc_layer=raw_fc_layer,
         )
-        self.autoregression_steps = config_epoch_to_autoregression_steps(config, 0)
+        self.autoregression_steps = config_epoch_to_autoregression_steps(
+            autoregression_config, 0
+        )
 
-        self.config = config
+        self.config = autoregression_config
         self.optimizer_config = optimizer_config
         self.save_hyperparameters(
             "input_vars",
@@ -58,10 +60,14 @@ class FuXi(L.LightningModule):
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
         lat_weights = args[0][1]
+        if kwargs["autoregression_steps"] is not None:
+            autoregression_steps = kwargs["autoregression_steps"]
+        else:
+            autoregression_steps = self.autoregression_steps
         out = self.model.step(
             ts,
             lat_weights,
-            autoregression_steps=self.autoregression_steps,
+            autoregression_steps=autoregression_steps,
             return_out=True,
             return_loss=False,
         )["output"]

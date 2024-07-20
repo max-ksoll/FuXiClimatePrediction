@@ -71,7 +71,7 @@ LON = Dimension[np.float64](
 LEVEL = Dimension[np.float32]("level", 5, -99, min_val=0, max_val=4, era_name="level")
 # Die Reihenfolge der Values darf nicht geändert werden
 METRICS_ARRAY = ["min", "max", "mean", "std"]
-METRICS = Dimension[np.string_]("metric", 4, "", values=METRICS_ARRAY)
+METRICS = Dimension[np.strings]("metric", 4, "", values=METRICS_ARRAY)
 
 # ORAS
 COMPLETE_OCEAN_HEAT_CONTENT = Variable(

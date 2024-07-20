@@ -11,3 +11,7 @@ def get_specific_config(specific_key):
 
 def get_optimizer_config():
     return get_specific_config("optimizer_config")
+
+
+def get_model_parameter():
+    return get_specific_config("model_parameter")

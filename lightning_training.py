@@ -10,9 +10,10 @@ from lightning.pytorch.strategies import DDPStrategy
 
 import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
+from src.FuXiEval import FuXiEvaluator
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
-from src.wandb_utils import get_optimizer_config
+from src.wandb_utils import get_optimizer_config, get_model_parameter
 
 dotenv.load_dotenv()
 
@@ -23,23 +24,38 @@ device = 'auto'
 if torch.backends.mps.is_available():
     device = 'cpu'
 
+def init_model(run):
+    config = run.config
+
+    logger.info('Creating Model')
+    model_parameter = get_model_parameter()
+    channels = model_parameter['channel']
+    transformer_blocks = model_parameter['transformer_blocks']
+    transformer_heads = model_parameter['heads']
+    optimizer_config = get_optimizer_config()
+    model = FuXi(
+        35, channels, transformer_blocks, transformer_heads,
+        config.get('autoregression_steps_epochs'),
+        optimizer_config=optimizer_config,
+    )
+    return model
+
+
+def start_eval(run = None):
+    if run is None:
+        with wandb.init() as run:
+            ckpt_path: str = "/Users/xgxtphg/Documents/git/FuXiClimatePrediction/models/epoch=169-step=65579.ckpt"
+            eval = FuXiEvaluator(
+                 model_path=ckpt_path,
+                autoregression_config= run.config.get('autoregression_steps_epochs'),
+                optimizer_config= get_optimizer_config()
+            )
+
 
 def train():
     with wandb.init() as run:
         config = run.config
-
-        logger.info('Creating Model')
-        channels = config.get('model_parameter')['channel']
-        transformer_blocks = config.get('model_parameter')['transformer_blocks']
-        transformer_heads = config.get('model_parameter')['heads']
-        optimizer_config = get_optimizer_config()
-
-        model = FuXi(
-            35, channels, transformer_blocks, transformer_heads,
-            config.get('autoregression_steps_epochs'),
-            optimizer_config=optimizer_config,
-        )
-        # model = torch.compile(model, mode="reduce-overhead")
+        model = init_model(run)
 
         wandb_logger = WandbLogger(id=run.id, resume='allow')
         wandb_logger.watch(model, log_freq=100)
@@ -88,9 +104,8 @@ def train():
         )
 
         trainer.fit(model, datamodule=dm)
-
         wandb_logger.experiment.unwatch(model)
 
 
 if __name__ == '__main__':
-    wandb.agent(getSweepID(), train)
+    wandb.agent(getSweepID(), start_eval)

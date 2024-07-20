@@ -11,6 +11,8 @@ from lightning.pytorch.strategies import DDPStrategy
 import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.FuXiEval import FuXiEvaluator
+
+from src.ModelEvaluator import ModelEvaluator
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 from src.wandb_utils import get_optimizer_config, get_model_parameter
@@ -102,9 +104,16 @@ def train():
             config=config,
             skip_data_preparing=os.environ.get('SKIP_DATA_PREPARATION', False),
         )
-
+        dm.val_dataloader()
         trainer.fit(model, datamodule=dm)
         wandb_logger.experiment.unwatch(model)
+        evaluator = ModelEvaluator(
+            model=model,
+            run=run,
+            dataset_type="test",
+            dm=dm
+        )
+        evaluator.evaluate()
 
 
 if __name__ == '__main__':

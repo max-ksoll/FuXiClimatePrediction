@@ -20,6 +20,8 @@ class FuXiDataModule(L.LightningDataModule):
         end_year: int,
         val_start_year: int,
         val_end_year: int,
+        test_start_year: int,
+        test_end_year: int,
         config: Config,
         skip_data_preparing: bool = False,
     ):
@@ -29,6 +31,8 @@ class FuXiDataModule(L.LightningDataModule):
         self.end_year = end_year
         self.val_start_year = val_start_year
         self.val_end_year = val_end_year
+        self.test_start_year = test_start_year
+        self.test_end_year = test_end_year
         self.train_ds_path = os.path.join(data_dir, f"{start_year}_{end_year}.zarr")
         self.train_mean_path = os.path.join(
             data_dir, f"mean_{start_year}_{end_year}.zarr"
@@ -37,6 +41,12 @@ class FuXiDataModule(L.LightningDataModule):
             data_dir, f"{val_start_year}_{val_end_year}.zarr"
         )
         self.val_mean_path = os.path.join(
+            data_dir, f"mean_{val_start_year}_{val_end_year}.zarr"
+        )
+        self.test_ds_path = os.path.join(
+            data_dir, f"{val_start_year}_{val_end_year}.zarr"
+        )
+        self.test_mean_path = os.path.join(
             data_dir, f"mean_{val_start_year}_{val_end_year}.zarr"
         )
         self.batch_size = config.get("batch_size", 1)
@@ -81,8 +91,17 @@ class FuXiDataModule(L.LightningDataModule):
             **get_dataloader_params(self.batch_size),
         )
 
-    def test_dataloader(self):
-        raise NotImplementedError()
+    def test_dataloader(self, autoregression_steps=None):
+        if autoregression_steps is None:
+            autoregression_steps = self.trainer.model.autoregression_steps
+        return DataLoader(
+            FuXiDataset(
+                self.test_ds_path,
+                self.test_mean_path,
+                autoregression_steps,
+            ),
+            **get_dataloader_params(self.batch_size),
+        )
 
     def predict_dataloader(self):
         raise NotImplementedError()

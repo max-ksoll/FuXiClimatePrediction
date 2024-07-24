@@ -90,14 +90,19 @@ class ModelEvaluator:
         model_out_minus_clim.clear()
 
         # TODO Level wollen wir einerseits gemeant und andererseits auch einzeln haben
-        image_dict = {}
+        image_dict_avg_diff = {}
+        image_dict_minus_clim = {}
         for var_idx in range(35):
             paths, var_name = self.plot_average_difference_over_time(
                 diff_tensor, var_idx
             )
-            image_dict[var_name] = paths
+            image_dict_avg_diff[var_name] = paths
+            path, var_name = self.plot_model_minus_clim(model_minus_clim, var_idx)
+            image_dict_minus_clim[var_name] = path
 
-        return_dict["img"] = image_dict
+        return_dict["img"] = {}
+        return_dict["img"]["average_difference_over_time"] = image_dict_avg_diff
+        return_dict["img"]["model_out_minus_clim"] = image_dict_minus_clim
 
         return return_dict
         # return {
@@ -162,10 +167,76 @@ class ModelEvaluator:
         # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
         #     f"bias [{get_units(variable)}]"
         # )
-        # ax.set_title(f"")
+        ax.set_title(f"{var_name} {auto_step_to_plot+1}m into future")
         save_path = os.path.join(
             self.fig_path,
             f"avg-diff-time_{var_name}_{auto_step_to_plot+1}m_into_future.png",
+        )
+
+        plt.savefig(save_path)
+        plt.close()
+
+        return save_path
+
+    def plot_model_minus_clim(
+        self, model_minus_clim, variable_idx
+    ) -> Tuple[str | os.PathLike, str]:
+        # AUTOREGRESSION X VARIABLES X LATITUDE X LONGITUDE
+        difference = model_minus_clim[variable_idx, :, :]
+        var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
+
+        if var_level >= 0:
+            var_name += f" {var_level}"
+
+        fig, ax = plt.subplots(
+            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
+        )
+        ax.coastlines()
+
+        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
+        lons = np.linspace(-180, 180, LON.size)
+        im = ax.pcolormesh(
+            lons, lats, difference, transform=ccrs.PlateCarree(), shading="auto"
+        )
+        plt.colorbar(im, ax=ax, orientation="vertical")
+
+        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
+        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
+        #     f"bias [{get_units(variable)}]"
+        # )
+        ax.set_title(f"{var_name} difference to clim")
+        save_path = os.path.join(
+            self.fig_path,
+            f"diff-clim_{var_name}.png",
+        )
+
+        plt.savefig(save_path)
+        plt.close()
+
+        return save_path, var_name
+
+    @log_exec_time
+    def _plot_model_minus_clim(self, data, var_name):
+        fig, ax = plt.subplots(
+            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
+        )
+        ax.coastlines()
+
+        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
+        lons = np.linspace(-180, 180, LON.size)
+        im = ax.pcolormesh(
+            lons, lats, data, transform=ccrs.PlateCarree(), shading="auto"
+        )
+        plt.colorbar(im, ax=ax, orientation="vertical")
+
+        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
+        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
+        #     f"bias [{get_units(variable)}]"
+        # )
+        ax.set_title(f"{var_name} difference to clim")
+        save_path = os.path.join(
+            self.fig_path,
+            f"diff-clim_{var_name}_{auto_step_to_plot+1}m_into_future.png",
         )
 
         plt.savefig(save_path)

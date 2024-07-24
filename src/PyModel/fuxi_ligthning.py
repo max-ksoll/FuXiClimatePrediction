@@ -3,17 +3,13 @@ from typing import Any, Dict
 
 import lightning as L
 import torch
-import wandb
-from lightning.pytorch.utilities.types import STEP_OUTPUT
-import time
 
 from src.Dataset.dimensions import LAT, LON
-from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
-from src.ModelEvaluator import ModelEvaluator
+from src.Eval.ModelEvaluator import ModelEvaluator
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS
-from src.utils import config_epoch_to_autoregression_steps, get_latitude_weights
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
+from src.utils import get_latitude_weights
 from src.wandb_utils import log_eval_dict
 
 logger = logging.getLogger(__name__)
@@ -98,11 +94,13 @@ class FuXi(L.LightningModule):
         if self.trainer.is_global_zero:
             self.valModelEvaluator = ModelEvaluator(
                 self.trainer.train_dataloader.dataset.get_clima_mean(),
+                self.lat_weights,
                 self.trainer.val_dataloaders,
                 self.fig_path,
             )
             self.testModelEvaluator = ModelEvaluator(
                 self.trainer.train_dataloader.dataset.get_clima_mean(),
+                self.lat_weights,
                 self.trainer.test_dataloaders,
                 self.fig_path,
             )

@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict
 
 import lightning as L
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.PyModel.score_torch import *
@@ -145,3 +146,6 @@ class FuXi(L.LightningModule):
             eta_min=self.optimizer_config["optimizer_config_eta_min"],
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
+
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        ts, lat_weights = args

@@ -9,6 +9,36 @@ from src.wandb_utils import get_optimizer_config
 
 
 class ModelEvaluator:
+    def __init__(self, clima_mean, fig_path):
+        ...
+
+    def reset(self):
+        ...
+
+    def update(self, ts, lat_weights, outs):
+        ...
+
+    def evaluate_batch(self, ts, lat_weights, outs, withImg=False):
+        return {
+            "acc": 0,
+            "mae": 0,
+            "rmse": 0,
+            "average_difference_over_time": {
+                "specific_humidity": "fig_path",
+                "temperature": "fig_path",
+                "u_component_of_wind": "fig_path",
+                "v_component_of_wind": "fig_path",
+            },
+            "model_out_minus_clim": {
+                "specific_humidity": "fig_path",
+                "temperature": "fig_path",
+                "u_component_of_wind": "fig_path",
+                "v_component_of_wind": "fig_path",
+            },
+        }
+
+
+class ModelEvaluator2:
     def __init__(
         self,
         model_path=None,
@@ -30,8 +60,6 @@ class ModelEvaluator:
         self.run = run
         self.dataset_type = dataset_type
         self.autoregression_steps = autoregression_steps
-
-        print(get_sweep_config())
         if model_path is not None:
             self.model = self.load_model(model_path)
         elif model is not None:

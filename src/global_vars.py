@@ -8,8 +8,6 @@ OPTIMIZER_REQUIRED_KEYS = [
     "optimizer_config_T_mult",
     "optimizer_config_eta_min",
 ]
-LAT_DIM = 121
-LONG_DIM = 240
 
 LEVEL_VAR_ATTRIBUTE = ["time", "level", "latitude", "longitude"]
 MEAN_LEVEL_VAR_ATTRIBUTE = ["metric", "level"]

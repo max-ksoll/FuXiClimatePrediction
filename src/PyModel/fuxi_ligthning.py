@@ -2,12 +2,14 @@ import logging
 from typing import Any, Dict
 
 import lightning as L
+import torch
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
+from src.Dataset.dimensions import LAT, LON
+from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
 from src.PyModel.fuxi import FuXi as FuXiBase
-from src.PyModel.score_torch import *
-from src.global_vars import OPTIMIZER_REQUIRED_KEYS, LAT_DIM, LONG_DIM
-from src.utils import config_epoch_to_autoregression_steps
+from src.global_vars import OPTIMIZER_REQUIRED_KEYS
+from src.utils import config_epoch_to_autoregression_steps, get_latitude_weights
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +30,8 @@ class FuXi(L.LightningModule):
             input_vars,
             channels,
             transformer_blocks,
-            LAT_DIM,
-            LONG_DIM,
+            LAT.size,
+            LON.size,
             heads=transformer_heads,
             raw_fc_layer=raw_fc_layer,
         )
@@ -39,6 +41,7 @@ class FuXi(L.LightningModule):
 
         self.config = autoregression_config
         self.optimizer_config = optimizer_config
+        self.lat_weights = get_latitude_weights(LAT)
         self.save_hyperparameters(
             "input_vars",
             "channels",
@@ -60,25 +63,19 @@ class FuXi(L.LightningModule):
 
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
-        lat_weights = args[0][1]
-        if kwargs["autoregression_steps"] is not None:
-            autoregression_steps = kwargs["autoregression_steps"]
-        else:
-            autoregression_steps = self.autoregression_steps
         out = self.model.step(
             ts,
-            lat_weights,
-            autoregression_steps=autoregression_steps,
+            self.lat_weights,
+            autoregression_steps=self.autoregression_steps,
             return_out=True,
             return_loss=False,
         )["output"]
         return out
 
     def training_step(self, batch, batch_idx) -> torch.Tensor:
-        ts, lat_weights = batch
         loss = self.model.step(
-            ts,
-            lat_weights,
+            batch,
+            self.lat_weights,
             autoregression_steps=self.autoregression_steps,
             return_loss=True,
             return_out=False,
@@ -87,12 +84,11 @@ class FuXi(L.LightningModule):
         return loss
 
     def validation_step(self, batch, _) -> Dict[str, torch.Tensor]:
-        ts, lat_weights = batch
-        label = torch.clone(ts[:, 2:, :, :, :])
+        label = torch.clone(batch[:, 2:, :, :, :])
 
         returns = self.model.step(
-            ts,
-            lat_weights,
+            batch,
+            self.lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
         loss = returns["loss"]
@@ -103,7 +99,7 @@ class FuXi(L.LightningModule):
         ret_dict = dict()
         ret_dict["loss"] = loss
 
-        rmse = weighted_rmse(outs, label, lat_weights)
+        rmse = weighted_rmse(outs, label, self.lat_weights)
         self.log("val_rmse", rmse)
         ret_dict["rmse"] = rmse
 
@@ -111,7 +107,7 @@ class FuXi(L.LightningModule):
             acc = weighted_acc(
                 outs,
                 label,
-                lat_weights,
+                self.lat_weights,
                 self.trainer.train_dataloader.dataset.get_clima_mean().to(outs),
             )
             self.log("val_acc", acc)
@@ -119,7 +115,7 @@ class FuXi(L.LightningModule):
         else:
             logger.warning("No Train Dataloader, skipping ACC Metric")
 
-        mae = weighted_mae(outs, label, lat_weights)
+        mae = weighted_mae(outs, label, self.lat_weights)
         self.log("val_mae", mae)
         ret_dict["mae"] = mae
 

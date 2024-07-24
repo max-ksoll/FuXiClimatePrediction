@@ -66,6 +66,10 @@ class FuXiDataModule(L.LightningDataModule):
         builder = DataBuilder(self.data_dir, self.val_start_year, self.val_end_year)
         builder.generate_data()
 
+        logger.info("Creating Test Data")
+        builder = DataBuilder(self.data_dir, self.test_start_year, self.test_end_year)
+        builder.generate_data()
+
     def setup(self, stage: str):
         ...
 
@@ -76,29 +80,25 @@ class FuXiDataModule(L.LightningDataModule):
                 self.train_mean_path,
                 self.trainer.model.autoregression_steps,
             ),
-            **get_dataloader_params(self.batch_size),
+            **get_dataloader_params(self.batch_size, is_train_dataloader=True),
         )
 
-    def val_dataloader(self, autoregression_steps=None):
-        if autoregression_steps is None:
-            autoregression_steps = self.trainer.model.autoregression_steps
+    def val_dataloader(self):
         return DataLoader(
             FuXiDataset(
                 self.val_ds_path,
                 self.val_mean_path,
-                autoregression_steps,
+                self.trainer.model.autoregression_steps,
             ),
             **get_dataloader_params(self.batch_size),
         )
 
-    def test_dataloader(self, autoregression_steps=None):
-        if autoregression_steps is None:
-            autoregression_steps = self.trainer.model.autoregression_steps
+    def test_dataloader(self):
         return DataLoader(
             FuXiDataset(
                 self.test_ds_path,
                 self.test_mean_path,
-                autoregression_steps,
+                self.trainer.model.autoregression_steps,
             ),
             **get_dataloader_params(self.batch_size),
         )

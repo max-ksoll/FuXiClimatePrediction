@@ -9,8 +9,11 @@ from src.wandb_utils import get_optimizer_config
 
 
 class ModelEvaluator:
-    def __init__(self, clima_mean, fig_path):
-        ...
+    def __init__(self, clima_mean, dataloader, fig_path):
+        self.dataloader = dataloader
+
+    def set_dl(self, dataloader):
+        self.dataloader = dataloader
 
     def reset(self):
         ...
@@ -18,22 +21,24 @@ class ModelEvaluator:
     def update(self, ts, lat_weights, outs):
         ...
 
-    def evaluate_batch(self, ts, lat_weights, outs, withImg=False):
+    def evaluate_batch(self, ts, lat_weights, outs, withImg=True):
         return {
             "acc": 0,
             "mae": 0,
             "rmse": 0,
-            "average_difference_over_time": {
-                "specific_humidity": "fig_path",
-                "temperature": "fig_path",
-                "u_component_of_wind": "fig_path",
-                "v_component_of_wind": "fig_path",
-            },
-            "model_out_minus_clim": {
-                "specific_humidity": "fig_path",
-                "temperature": "fig_path",
-                "u_component_of_wind": "fig_path",
-                "v_component_of_wind": "fig_path",
+            "img": {
+                "average_difference_over_time": {
+                    "specific_humidity": ["fig_path"],
+                    "temperature": ["fig_path"],
+                    "u_component_of_wind": ["fig_path"],
+                    "v_component_of_wind": ["fig_path"],
+                },
+                "model_out_minus_clim": {
+                    "specific_humidity": ["fig_path"],
+                    "temperature": ["fig_path"],
+                    "u_component_of_wind": ["fig_path"],
+                    "v_component_of_wind": ["fig_path"],
+                },
             },
         }
 

@@ -3,13 +3,14 @@ from typing import Any, Dict
 
 import lightning as L
 import torch
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 from src.Dataset.dimensions import LAT, LON
-from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
+from src.Eval.ModelEvaluator import ModelEvaluator
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS
-from src.utils import config_epoch_to_autoregression_steps, get_latitude_weights
+from src.utils import config_epoch_to_autoregression_steps, log_exec_time
+from src.utils import get_latitude_weights
+from src.wandb_utils import log_eval_dict
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class FuXi(L.LightningModule):
         transformer_heads: int,
         autoregression_config: Dict[str, int],
         optimizer_config: Dict[str, Any],
+        fig_path: str,
         raw_fc_layer=False,
     ):
         super().__init__()
@@ -35,6 +37,8 @@ class FuXi(L.LightningModule):
             heads=transformer_heads,
             raw_fc_layer=raw_fc_layer,
         )
+        self.valModelEvaluator = None
+        self.testModelEvaluator = None
         self.autoregression_steps = config_epoch_to_autoregression_steps(
             autoregression_config, 0
         )
@@ -49,6 +53,7 @@ class FuXi(L.LightningModule):
             "transformer_heads",
             "raw_fc_layer",
         )
+        self.fig_path = fig_path
 
     def on_train_epoch_end(self) -> None:
         old_auto_steps = self.autoregression_steps
@@ -60,6 +65,7 @@ class FuXi(L.LightningModule):
             self.autoregression_steps = config_epoch_to_autoregression_steps(
                 self.config, self.current_epoch
             )
+        self.modelEvaluator.set_dl(self.trainer.val_dataloaders)
 
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
@@ -81,45 +87,36 @@ class FuXi(L.LightningModule):
             return_out=False,
         )["loss"]
         self.log("train_loss", loss)
+        self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
         return loss
 
-    def validation_step(self, batch, _) -> Dict[str, torch.Tensor]:
-        label = torch.clone(batch[:, 2:, :, :, :])
-
-        returns = self.model.step(
-            batch,
-            self.lat_weights,
-            autoregression_steps=self.autoregression_steps,
-        )
-        loss = returns["loss"]
-        outs = returns["output"]
-
-        self.log("val_loss", loss)
-
-        ret_dict = dict()
-        ret_dict["loss"] = loss
-
-        rmse = weighted_rmse(outs, label, self.lat_weights)
-        self.log("val_rmse", rmse)
-        ret_dict["rmse"] = rmse
-
-        if self.trainer.train_dataloader is not None:
-            acc = weighted_acc(
-                outs,
-                label,
+    def on_fit_start(self) -> None:
+        if self.trainer.is_global_zero:
+            self.valModelEvaluator = ModelEvaluator(
+                self.trainer.train_dataloader.dataset.get_clima_mean(),
                 self.lat_weights,
-                self.trainer.train_dataloader.dataset.get_clima_mean().to(outs),
+                self.trainer.val_dataloaders,
+                self.fig_path,
             )
-            self.log("val_acc", acc)
-            ret_dict["acc"] = acc
-        else:
-            logger.warning("No Train Dataloader, skipping ACC Metric")
+            self.testModelEvaluator = ModelEvaluator(
+                self.trainer.train_dataloader.dataset.get_clima_mean(),
+                self.lat_weights,
+                self.trainer.test_dataloaders,
+                self.fig_path,
+            )
 
-        mae = weighted_mae(outs, label, self.lat_weights)
-        self.log("val_mae", mae)
-        ret_dict["mae"] = mae
+    @log_exec_time
+    def validation_step(self, batch, batch_index) -> None:
+        returns, ts, lat_weights = self.batch_step(batch)
+        self.valModelEvaluator.update(returns["output"], batch_index)
+        self.log("val_loss", returns["loss"])
 
-        return ret_dict
+    @log_exec_time
+    def on_validation_epoch_end(self) -> Dict[str, torch.Tensor]:
+        if self.trainer.is_global_zero:
+            model_eval = self.valModelEvaluator.evaluate()
+            log_eval_dict(model_eval, "val")
+            return model_eval
 
     def configure_optimizers(self):
         for key in OPTIMIZER_REQUIRED_KEYS:
@@ -143,5 +140,27 @@ class FuXi(L.LightningModule):
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
 
-    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        ts, lat_weights = args
+    @log_exec_time
+    def test_step(self, batch, batch_index) -> None:
+        returns, ts, lat_weights = self.batch_step(batch)
+        self.testModelEvaluator.update(returns["output"], batch_index)
+        self.log("val_loss", returns["loss"])
+
+    @log_exec_time
+    def on_test_epoch_end(self) -> Dict[str, torch.Tensor]:
+        if self.trainer.is_global_zero:
+            model_eval = self.testModelEvaluator.evaluate()
+            log_eval_dict(model_eval, "test")
+            return model_eval
+
+    def batch_step(self, batch):
+        ts, lat_weights = batch
+        return (
+            self.model.step(
+                ts,
+                lat_weights,
+                autoregression_steps=self.autoregression_steps,
+            ),
+            ts,
+            lat_weights,
+        )

@@ -43,6 +43,7 @@ def init_model(run):
         transformer_heads,
         config.get("autoregression_steps_epochs"),
         optimizer_config=optimizer_config,
+        fig_path=os.environ.get("FIG_PATH")
     )
     return model
 

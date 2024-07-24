@@ -2,14 +2,17 @@ import logging
 from typing import Any, Dict
 
 import lightning as L
+import torch
 import wandb
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 import time
 
+from src.Dataset.dimensions import LAT, LON
+from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
 from src.ModelEvaluator import ModelEvaluator
 from src.PyModel.fuxi import FuXi as FuXiBase
-from src.PyModel.score_torch import *
-from src.global_vars import OPTIMIZER_REQUIRED_KEYS, LAT_DIM, LONG_DIM
+from src.global_vars import OPTIMIZER_REQUIRED_KEYS
+from src.utils import config_epoch_to_autoregression_steps, get_latitude_weights
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
 from src.wandb_utils import log_eval_dict
 
@@ -33,8 +36,8 @@ class FuXi(L.LightningModule):
             input_vars,
             channels,
             transformer_blocks,
-            LAT_DIM,
-            LONG_DIM,
+            LAT.size,
+            LON.size,
             heads=transformer_heads,
             raw_fc_layer=raw_fc_layer,
         )
@@ -46,6 +49,7 @@ class FuXi(L.LightningModule):
 
         self.config = autoregression_config
         self.optimizer_config = optimizer_config
+        self.lat_weights = get_latitude_weights(LAT)
         self.save_hyperparameters(
             "input_vars",
             "channels",
@@ -69,10 +73,9 @@ class FuXi(L.LightningModule):
 
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
-        lat_weights = args[0][1]
         out = self.model.step(
             ts,
-            lat_weights,
+            self.lat_weights,
             autoregression_steps=self.autoregression_steps,
             return_out=True,
             return_loss=False,
@@ -80,10 +83,9 @@ class FuXi(L.LightningModule):
         return out
 
     def training_step(self, batch, batch_idx) -> torch.Tensor:
-        ts, lat_weights = batch
         loss = self.model.step(
-            ts,
-            lat_weights,
+            batch,
+            self.lat_weights,
             autoregression_steps=self.autoregression_steps,
             return_loss=True,
             return_out=False,

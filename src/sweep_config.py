@@ -23,9 +23,9 @@ def get_parameters_dict():
         "optimizer_config_T_mult": {"value": 2},
         "devices": {"value": 1},
         "num_nodes": {"value": 1},
-        "model_parameter_channel": {"value": 256},
-        "model_parameter_transformer_blocks": {"value": 8},
-        "model_parameter_heads": {"value": 8},
+        "model_parameter_channel": {"value": 2},
+        "model_parameter_transformer_blocks": {"value": 2},
+        "model_parameter_heads": {"value": 2},
         "autoregression_steps_epochs": {
             "value": {
                 10: 1,  # until epoch n -> m autoregression step

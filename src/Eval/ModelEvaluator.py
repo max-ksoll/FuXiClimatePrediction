@@ -1,10 +1,15 @@
 import os
+from typing import Tuple, List
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 
 from src.Dataset.fuxi_dataset import FuXiDataset
 from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
+from src.utils import log_exec_time
+
+import cartopy.crs as ccrs
 
 
 class ModelEvaluator:
@@ -23,12 +28,12 @@ class ModelEvaluator:
         # Es werden nur Grafiken erstellt für die Vorhandenen Schritte
         # 1 Autoregression -> nur 1 Plot
         # 5 Autoregression -> 3 Plots
-        self.autoregression_steps_for_average_difference_over_time_plots = [
-            1,
-            3,
-            5,
-            7,
-            10,
+        self.autoregression_steps_plots = [
+            0,
+            2,
+            4,
+            6,
+            9,
         ]
         self.model_outs = {}
 
@@ -55,6 +60,7 @@ class ModelEvaluator:
             [self.model_outs[key] for key in sorted(self.model_outs.keys())]
         )
         diff_tensor_list = []
+        model_out_minus_clim = []
         accs = []
         maes = []
         rmses = []
@@ -66,10 +72,8 @@ class ModelEvaluator:
             )
             maes.append(weighted_mae(model_outs, batch, self.lat_weights))
             rmses.append(weighted_rmse(model_outs, batch, self.lat_weights))
-            diff_tensor_list.append(batch - model_outs)
-        diff_tensor = torch.cat(diff_tensor_list)
-        diff_tensor_list.clear()
-        diff_tensor.nanmean(dim=0)
+            diff_tensor_list.append(model_outs - batch)
+            model_out_minus_clim.append(model_outs - self.clima_mean)
 
         return_dict = {
             "acc": np.mean(accs),
@@ -77,9 +81,23 @@ class ModelEvaluator:
             "rmse": np.mean(rmses),
         }
 
+        diff_tensor = torch.cat(diff_tensor_list)
+        diff_tensor = diff_tensor.nanmean(dim=0)
+        diff_tensor_list.clear()
+
+        model_minus_clim = torch.cat(model_out_minus_clim)
+        model_minus_clim = model_minus_clim.nanmean(dim=[0, 1])
+        model_out_minus_clim.clear()
+
         # TODO Level wollen wir einerseits gemeant und andererseits auch einzeln haben
-        for _ in []:
-            ...
+        image_dict = {}
+        for var_idx in range(35):
+            paths, var_name = self.plot_average_difference_over_time(
+                diff_tensor, var_idx
+            )
+            image_dict[var_name] = paths
+
+        return_dict["img"] = image_dict
 
         return return_dict
         # return {
@@ -102,11 +120,67 @@ class ModelEvaluator:
         #     },
         # }
 
+    def plot_average_difference_over_time(
+        self, difference, variable_idx
+    ) -> Tuple[List[str | os.PathLike], str]:
+        # AUTOREGRESSION X VARIABLES X LATITUDE X LONGITUDE
+        difference[:, :, -2:2, :] = 0
+        difference = difference[:, variable_idx, :, :]
+        var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
+
+        if var_level >= 0:
+            var_name += f" {var_level}"
+
+        paths = []
+
+        for auto_step_to_plot in self.autoregression_steps_plots:
+            if difference.shape[0] <= auto_step_to_plot:
+                return paths, var_name
+
+            data = difference[auto_step_to_plot]
+            paths.append(
+                self._plot_average_difference_over_time(
+                    data, var_name, auto_step_to_plot
+                )
+            )
+
+    @log_exec_time
+    def _plot_average_difference_over_time(self, data, var_name, auto_step_to_plot):
+        fig, ax = plt.subplots(
+            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
+        )
+        ax.coastlines()
+
+        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
+        lons = np.linspace(-180, 180, LON.size)
+        im = ax.pcolormesh(
+            lons, lats, data, transform=ccrs.PlateCarree(), shading="auto"
+        )
+        plt.colorbar(im, ax=ax, orientation="vertical")
+
+        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
+        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
+        #     f"bias [{get_units(variable)}]"
+        # )
+        # ax.set_title(f"")
+        save_path = os.path.join(
+            self.fig_path,
+            f"avg-diff-time_{var_name}_{auto_step_to_plot+1}m_into_future.png",
+        )
+
+        plt.savefig(save_path)
+        plt.close()
+
+        return save_path
+
 
 if __name__ == "__main__":
     from src.utils import get_dataloader_params, get_latitude_weights
     from torch.utils.data import DataLoader
-    from src.Dataset.dimensions import LAT
+    from src.Dataset.dimensions import LAT, LON
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
 
     BS = 3
     AR = 4

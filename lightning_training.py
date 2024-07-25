@@ -101,11 +101,11 @@ def train():
         dm = FuXiDataModule(
             data_dir=data_dir,
             start_year=1958,
-            end_year=1959,
-            val_start_year=1960,
-            val_end_year=1960,
-            test_start_year=1960,
-            test_end_year=1960,
+            end_year=2005,
+            val_start_year=2006,
+            val_end_year=2014,
+            test_start_year=2006,
+            test_end_year=2014,
             config=config,
             skip_data_preparing=skip_data_prep,
         )

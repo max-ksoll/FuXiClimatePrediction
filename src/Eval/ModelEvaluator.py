@@ -215,35 +215,6 @@ class ModelEvaluator:
 
         return save_path, var_name
 
-    @log_exec_time
-    def _plot_model_minus_clim(self, data, var_name):
-        fig, ax = plt.subplots(
-            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
-        )
-        ax.coastlines()
-
-        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
-        lons = np.linspace(-180, 180, LON.size)
-        im = ax.pcolormesh(
-            lons, lats, data, transform=ccrs.PlateCarree(), shading="auto"
-        )
-        plt.colorbar(im, ax=ax, orientation="vertical")
-
-        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
-        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
-        #     f"bias [{get_units(variable)}]"
-        # )
-        ax.set_title(f"{var_name} difference to clim")
-        save_path = os.path.join(
-            self.fig_path,
-            f"diff-clim_{var_name}_{auto_step_to_plot+1}m_into_future.png",
-        )
-
-        plt.savefig(save_path)
-        plt.close()
-
-        return save_path
-
 
 if __name__ == "__main__":
     from src.utils import get_dataloader_params, get_latitude_weights

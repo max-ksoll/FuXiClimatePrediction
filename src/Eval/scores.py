@@ -30,8 +30,8 @@ def weighted_acc(
     # clim (25, 121, 240)
     # lat_weights (121, 1)
     mask = ~torch.isnan(labels)
-    if clima_mean.dim() == 1:
-        clima_mean = clima_mean[:, None, None]
+    clim_mask = ~torch.isnan(clima_mean)
+    clima_mean[~clim_mask] = 0
     forecast_error = (forecast - clima_mean) * lat_weights
     forecast_error[~mask] = 0  # Set forecast errors to 0 where mask is True
     label_error = (labels - clima_mean) * lat_weights

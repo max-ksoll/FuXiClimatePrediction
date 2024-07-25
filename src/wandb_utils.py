@@ -11,3 +11,25 @@ def get_specific_config(specific_key):
 
 def get_optimizer_config():
     return get_specific_config("optimizer_config")
+
+
+def get_model_parameter():
+    return get_specific_config("model_parameter")
+
+
+def log_eval_dict(model_eval, testSet):
+    log_data = {
+        f"{testSet}_acc": model_eval.get("acc", 0),
+        f"{testSet}_mae": model_eval.get("mae", 0),
+        f"{testSet}_rmse": model_eval.get("rmse", 0),
+        f"{testSet}_val_loss": model_eval.get("val_loss", 0),
+        f"{testSet}_img": {},
+    }
+    for eval_type in ["average_difference_over_time", "model_out_minus_clim"]:
+        log_data[f"{testSet}_img"][eval_type] = {}
+        for var, paths in model_eval[f"{testSet}_img"][eval_type].items():
+            log_data[f"{testSet}_img"][eval_type][var] = [
+                wandb.Image(path) for path in paths
+            ]
+
+    wandb.log(log_data)

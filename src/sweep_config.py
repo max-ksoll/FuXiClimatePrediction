@@ -23,9 +23,9 @@ def get_parameters_dict():
         "optimizer_config_T_mult": {"value": 2},
         "devices": {"value": 1},
         "num_nodes": {"value": 1},
-        "model_parameter": {
-            "value": {"channel": 256, "transformer_blocks": 8, "heads": 8}
-        },
+        "model_parameter_channel": {"value": 2},
+        "model_parameter_transformer_blocks": {"value": 2},
+        "model_parameter_heads": {"value": 2},
         "autoregression_steps_epochs": {
             "value": {
                 10: 1,  # until epoch n -> m autoregression step
@@ -41,10 +41,15 @@ def get_parameters_dict():
     return parameters_dict
 
 
+def get_sweep_config():
+    sweep_config = get_sweep()
+    sweep_config["parameters"] = get_parameters_dict()
+    return sweep_config
+
+
 def getSweepID():
     sweep_config = get_sweep()
     sweep_config["parameters"] = get_parameters_dict()
-    sweep_config["name"] = sweep_config["name"]
     sweep_id = wandb.sweep(
         sweep=sweep_config,
         project="FuXiClimateFirstTests",

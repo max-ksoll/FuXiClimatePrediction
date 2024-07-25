@@ -19,6 +19,7 @@ class Variable:
     isSurfaceVar: bool
     cdf_name: str
     var_type: VariableType
+    unit: str
 
 
 class Dimension(Generic[T]):
@@ -75,36 +76,50 @@ METRICS = Dimension[np.string_]("metric", 4, "", values=METRICS_ARRAY)
 
 # ORAS
 COMPLETE_OCEAN_HEAT_CONTENT = Variable(
-    "ocean_heat_content_for_the_total_water_column", True, "sohtcbtm", VariableType.ORAS
+    "ocean_heat_content_for_the_total_water_column",
+    True,
+    "sohtcbtm",
+    VariableType.ORAS,
+    "J/m^2",
 )
 OCEAN_HEAT_CONTENT_300M = Variable(
-    "ocean_heat_content_for_the_upper_300m", True, "sohtc300", VariableType.ORAS
+    "ocean_heat_content_for_the_upper_300m",
+    True,
+    "sohtc300",
+    VariableType.ORAS,
+    "J/m^2",
 )
 
 # ERA Surface
-V_WIND_10M = Variable("10m_v_component_of_wind", True, "u10", VariableType.ERA_SURFACE)
-U_WIND_10M = Variable("10m_u_component_of_wind", True, "v10", VariableType.ERA_SURFACE)
-SURFACE_TEMP = Variable("2m_temperature", True, "t2m", VariableType.ERA_SURFACE)
+V_WIND_10M = Variable(
+    "10m_v_component_of_wind", True, "u10", VariableType.ERA_SURFACE, "m/s"
+)
+U_WIND_10M = Variable(
+    "10m_u_component_of_wind", True, "v10", VariableType.ERA_SURFACE, "m/s"
+)
+SURFACE_TEMP = Variable("2m_temperature", True, "t2m", VariableType.ERA_SURFACE, "K")
 SEA_SURFACE_TEMP = Variable(
-    "sea_surface_temperature", True, "sst", VariableType.ERA_SURFACE
+    "sea_surface_temperature", True, "sst", VariableType.ERA_SURFACE, "K"
 )
 SOIL_TEMP_LV1 = Variable(
-    "soil_temperature_level_1", True, "stl1", VariableType.ERA_SURFACE
+    "soil_temperature_level_1", True, "stl1", VariableType.ERA_SURFACE, "K"
 )
-HEAT_FLUX = Variable("surface_latent_heat_flux", True, "slhf", VariableType.ERA_SURFACE)
+HEAT_FLUX = Variable(
+    "surface_latent_heat_flux", True, "slhf", VariableType.ERA_SURFACE, "J/m^2"
+)
 TOTAL_PRECIPITATION = Variable(
-    "total_precipitation", True, "tp", VariableType.ERA_SURFACE
+    "total_precipitation", True, "tp", VariableType.ERA_SURFACE, "m"
 )
 VOL_SOIL_WATER_LV2 = Variable(
-    "volumetric_soil_water_layer_2", True, "swvl2", VariableType.ERA_SURFACE
+    "volumetric_soil_water_layer_2", True, "swvl2", VariableType.ERA_SURFACE, "m^3/m^3"
 )
 
 # ERA Atmos
-V_WIND = Variable("v_component_of_wind", False, "v", VariableType.ERA_ATMOS)
-U_WIND = Variable("u_component_of_wind", False, "u", VariableType.ERA_ATMOS)
-TEMP = Variable("temperature", False, "t", VariableType.ERA_ATMOS)
-HUMIDITY = Variable("specific_humidity", False, "z", VariableType.ERA_ATMOS)
-GEOPOTENTIAL = Variable("geopotential", False, "q", VariableType.ERA_ATMOS)
+V_WIND = Variable("v_component_of_wind", False, "v", VariableType.ERA_ATMOS, "m/s")
+U_WIND = Variable("u_component_of_wind", False, "u", VariableType.ERA_ATMOS, "m/s")
+TEMP = Variable("temperature", False, "t", VariableType.ERA_ATMOS, "K")
+HUMIDITY = Variable("specific_humidity", False, "z", VariableType.ERA_ATMOS, "kg/kg")
+GEOPOTENTIAL = Variable("geopotential", False, "q", VariableType.ERA_ATMOS, "m^2/s^2")
 
 ORAS_VARIABLES = [COMPLETE_OCEAN_HEAT_CONTENT, OCEAN_HEAT_CONTENT_300M]
 
@@ -120,3 +135,6 @@ ERA_SURFACE_VARIABLES = [
 ]
 
 ERA_ATMOS_VARIABLES = [V_WIND, U_WIND, TEMP, HUMIDITY, GEOPOTENTIAL]
+
+SURFACE_VARIABLES = ORAS_VARIABLES + ERA_SURFACE_VARIABLES
+LEVEL_VARIABLES = ERA_ATMOS_VARIABLES

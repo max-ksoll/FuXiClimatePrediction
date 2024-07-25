@@ -2,11 +2,13 @@ import copy
 import logging
 import os
 import time
-from typing import Set, List, Tuple, Callable, Dict
+from typing import Set, List, Tuple, Callable, Dict, Any
 
 import numpy as np
-import xarray as xr
+import torch
 from scipy.ndimage import zoom
+
+from src.Dataset.dimensions import Dimension
 
 timing_logger = logging.getLogger("Timing Logger")
 utils_logger = logging.getLogger(__name__)
@@ -122,10 +124,21 @@ def config_epoch_to_autoregression_steps(config: Dict[str, int], epoch: int) -> 
     return config.get("-1", 1)
 
 
-def get_dataloader_params(batch_size: int):
+def get_dataloader_params(
+    batch_size: int, is_train_dataloader: bool = False
+) -> Dict[str, Any]:
     return {
         "batch_size": batch_size,
-        "shuffle": False,
+        "shuffle": is_train_dataloader,
         "num_workers": os.cpu_count() // 2,
         "pin_memory": True,
     }
+
+
+def get_latitude_weights(lat_dim: Dimension):
+    weights = np.cos(
+        np.deg2rad(
+            np.array(np.linspace(lat_dim.min_val, lat_dim.max_val, lat_dim.size))
+        )
+    )
+    return torch.Tensor(weights)[:, None]

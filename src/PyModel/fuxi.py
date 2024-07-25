@@ -3,7 +3,7 @@ from torchvision.models.swin_transformer import SwinTransformerBlockV2
 from torch import nn
 import logging
 from torchvision.ops import Permute
-from typing import Tuple, Union, Dict
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 

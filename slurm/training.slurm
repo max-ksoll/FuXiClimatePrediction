@@ -2,17 +2,19 @@
 #SBATCH --job-name=FuXi_Training     # Jobname
 #SBATCH --nodes=1                    # Anzahl der Knoten
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
-#SBATCH --cpus-per-task=8            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
+#SBATCH --cpus-per-task=20            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
 #SBATCH --gres=gpu:1                 # Anzahl der GPUs pro Knoten
-#SBATCH --mem=32GB                   # Speicher pro Knoten
-#SBATCH --time=12:00:00              # Laufzeit (hh:mm:ss)
+#SBATCH --time=00:10:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
 #SBATCH --account=ehpc03             # Slurm Konto
 
 # Laden der Module und Umgebungsvariablen
-module load mkl intel impi hdf5 python/3.11 cuda cudnn
+module load mkl intel impi hdf5 anaconda cuda cudnn
+conda init bash
+source /home/ovgu/ovgu433738/.bashrc
+source activate esmfold
 
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
 export FIG_PATH="/gpfs/projects/ehpc03/max/data-viz"

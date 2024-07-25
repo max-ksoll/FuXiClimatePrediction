@@ -1,11 +1,11 @@
 import logging
 import os
 
-import lightning as L
 import torch
-from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
-from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.strategies import DDPStrategy
+import pytorch_lightning as L
+from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.strategies import DDPStrategy
 
 import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule

@@ -9,7 +9,6 @@ import zarr
 from torch.utils.data import Dataset
 
 from src.Dataset.dimensions import (
-    LAT,
     METRICS_ARRAY,
     SURFACE_VARIABLES,
     LEVEL_VARIABLES,

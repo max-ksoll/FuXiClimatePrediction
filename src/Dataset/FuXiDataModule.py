@@ -1,7 +1,7 @@
 import logging
 import os
 
-import lightning as L
+import pytorch_lightning as L
 from torch.utils.data import DataLoader
 from wandb import Config
 

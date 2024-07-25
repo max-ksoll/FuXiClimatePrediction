@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict
 
-import lightning as L
+import pytorch_lightning as L
 import torch
 
 from src.Dataset.dimensions import LAT, LON

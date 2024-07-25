@@ -1,7 +1,6 @@
 import logging
 import os
 
-import dotenv
 import lightning as L
 import torch
 from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
@@ -10,16 +9,22 @@ from lightning.pytorch.strategies import DDPStrategy
 
 import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
-
-from src.Eval.ModelEvaluator import ModelEvaluator
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
 from src.wandb_utils import get_optimizer_config, get_model_parameter
 
-dotenv.load_dotenv()
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    import dotenv
+
+    dotenv.load_dotenv()
+except Exception as e:
+    logger.warning(
+        "Dotenv konnte nicht geladen werden! Benötigte Umgebungsvariablen müssen richtig gesetzt sein!"
+    )
+
 
 device = "auto"
 if torch.backends.mps.is_available():
@@ -36,6 +41,7 @@ def init_model(run):
     transformer_blocks = model_parameter["model_parameter_transformer_blocks"]
     transformer_heads = model_parameter["model_parameter_heads"]
     optimizer_config = get_optimizer_config()
+    raw_fc = os.environ.get("RAW_FC_LAYER", "false").lower() == "true"
     model = FuXi(
         35,
         channels,
@@ -43,13 +49,16 @@ def init_model(run):
         transformer_heads,
         config.get("autoregression_steps_epochs"),
         optimizer_config=optimizer_config,
-        fig_path=os.environ.get("FIG_PATH")
+        fig_path=os.environ.get("FIG_PATH"),
+        raw_fc_layer=raw_fc,
     )
     return model
 
 
 def train():
-    with wandb.init() as run:
+    wandb_offline = os.environ.get("WANDB_OFFLINE", "false").lower() == "true"
+    wandb_mode = "offline" if wandb_offline else "online"
+    with wandb.init(mode=wandb_mode) as run:
         config = run.config
         model = init_model(run)
 
@@ -61,10 +70,10 @@ def train():
             save_top_k=-1,
         )
 
-        if dotenv.dotenv_values().get("MULTI_GPU", False):
+        if os.environ.get("MULTI_GPU", False):
             strategy = DDPStrategy(find_unused_parameters=False)
-            devices = config.get("devices")
-            num_nodes = config.get("num_nodes")
+            devices = os.environ.get("DEVICES", 1)
+            num_nodes = os.environ.get("NODES", 1)
         else:
             strategy = "auto"
             devices = "auto"

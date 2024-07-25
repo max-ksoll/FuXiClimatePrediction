@@ -21,8 +21,6 @@ def get_parameters_dict():
         "optimizer_config_T_0": {"value": 2},
         "optimizer_config_eta_min": {"value": 1e-7},
         "optimizer_config_T_mult": {"value": 2},
-        "devices": {"value": 1},
-        "num_nodes": {"value": 1},
         "model_parameter_channel": {"value": 2},
         "model_parameter_transformer_blocks": {"value": 2},
         "model_parameter_heads": {"value": 2},

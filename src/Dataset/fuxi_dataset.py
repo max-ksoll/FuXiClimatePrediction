@@ -176,6 +176,8 @@ class FuXiDataset(Dataset):
 
     def normalize(self, inp) -> torch.Tensor:
         logger.debug(f"Normalizing Data")
+        # TODO Normalisierung sollte vielleicht lieber zwischen -1 und 1 sein
+        # TODO Normalisierung sollte wahrscheinlich immer über den selben means file sein
         return (inp - self.min) / self.max_minus_min
 
 

@@ -175,3 +175,6 @@ figures
 data-viz
 
 bin/
+
+tmp
+packages

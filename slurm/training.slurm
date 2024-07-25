@@ -11,10 +11,10 @@
 #SBATCH --account=ehpc03             # Slurm Konto
 
 # Laden der Module und Umgebungsvariablen
-module load mkl intel impi hdf5 anaconda cuda cudnn
-conda init bash
-source /home/ovgu/ovgu433738/.bashrc
-source activate esmfold
+module load mkl intel impi hdf5 python cuda cudnn
+python -m venv venv
+source venv/bin/activate
+pip install /gpfs/projects/ehpc03/max/packages/*.tar.gz /gpfs/projects/ehpc03/max/packages/*.whl
 
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
 export FIG_PATH="/gpfs/projects/ehpc03/max/data-viz"

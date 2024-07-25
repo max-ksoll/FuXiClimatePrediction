@@ -1,5 +1,3 @@
-# TODO main.py -> download_data.py oder so umbenennen
-
 import logging
 import os
 import shutil
@@ -10,7 +8,6 @@ from typing import List
 import cdsapi
 import numpy as np
 import xarray as xr
-from tqdm import tqdm
 
 from src import utils
 from src.Dataset.dimensions import (

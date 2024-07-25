@@ -1,6 +1,6 @@
 import dataclasses
 from enum import Enum
-from typing import TypeVar, Generic, Optional, List
+from typing import Generic, List
 
 import numpy as np
 

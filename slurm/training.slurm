@@ -15,6 +15,8 @@ module load mkl intel impi hdf5 python cuda cudnn
 
 source /gpfs/projects/ehpc03/max/venv/bin/activate
 
+python -m wandb offline
+
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
 export FIG_PATH="/gpfs/projects/ehpc03/max/data-viz"
 export WANDB_DIR="/gpfs/projects/ehpc03/max/wandb"

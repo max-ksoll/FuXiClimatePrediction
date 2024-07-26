@@ -12,9 +12,8 @@
 
 # Laden der Module und Umgebungsvariablen
 module load mkl intel impi hdf5 python cuda cudnn
-python -m venv venv
-source venv/bin/activate
-pip install /gpfs/projects/ehpc03/max/packages/*.tar.gz /gpfs/projects/ehpc03/max/packages/*.whl
+
+source /gpfs/projects/ehpc03/max/venv/bin/activate
 
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
 export FIG_PATH="/gpfs/projects/ehpc03/max/data-viz"

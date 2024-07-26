@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
 #SBATCH --cpus-per-task=20            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
 #SBATCH --gres=gpu:1                 # Anzahl der GPUs pro Knoten
-#SBATCH --time=00:10:00              # Laufzeit (hh:mm:ss)
+#SBATCH --time=00:30:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
@@ -18,6 +18,7 @@ source /gpfs/projects/ehpc03/max/venv/bin/activate
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
 export FIG_PATH="/gpfs/projects/ehpc03/max/data-viz"
 export WANDB_DIR="/gpfs/projects/ehpc03/max/wandb"
+export MODEL_DIR="/gpfs/projects/ehpc03/max/models"
 export RAW_FC_LAYER=False
 export SKIP_DATA_PREPARATION=true
 export DEVICES=1

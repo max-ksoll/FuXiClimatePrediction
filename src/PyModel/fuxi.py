@@ -84,6 +84,9 @@ class FuXi(torch.nn.Module):
             # Maske für die aktuelle Zeitschritt anwenden
             step_mask = mask[:, step + 2, :, :, :]
             if return_loss:
+                print(
+                    f"{timeseries.device=} {out.device=} {lat_weights.device=} {step_mask.device=}"
+                )
                 loss += (
                     torch.sum(
                         torch.abs(timeseries[:, step + 2, :, :, :] - out)

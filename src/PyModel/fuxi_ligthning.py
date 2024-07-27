@@ -6,6 +6,7 @@ import torch
 
 from src.Dataset.dimensions import LAT, LON
 from src.Eval.ModelEvaluator import ModelEvaluator
+from src.Eval.scores import weighted_acc, weighted_mae, weighted_rmse
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
@@ -57,6 +58,9 @@ class FuXi(L.LightningModule):
 
     def on_fit_start(self) -> None:
         self.lat_weights = self.lat_weights.to(self.device)
+        self.clima_mean = self.trainer.train_dataloader.dataset.get_clima_mean().to(
+            self.device
+        )
 
     def on_train_epoch_end(self) -> None:
         old_auto_steps = self.autoregression_steps
@@ -68,7 +72,6 @@ class FuXi(L.LightningModule):
             self.autoregression_steps = config_epoch_to_autoregression_steps(
                 self.config, self.current_epoch
             )
-        self.modelEvaluator.set_dl(self.trainer.val_dataloaders)
 
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
@@ -95,20 +98,23 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
-        if not self.valModelEvaluator:
-            self.valModelEvaluator = ModelEvaluator(
-                self.trainer.train_dataloader.dataset.get_clima_mean(),
-                self.lat_weights,
-                self.trainer.val_dataloaders,
-                self.fig_path,
-            )
         returns = self.model.step(
             batch,
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
-        self.valModelEvaluator.update(returns["output"], batch_index)
+        if self.clima_mean:
+            acc = weighted_acc(
+                returns["output"], batch, self.lat_weights, self.clima_mean
+            )
+            self.log("val_acc", acc)
+
+        mae = weighted_mae(returns["output"], batch, self.lat_weights)
+        rmse = weighted_rmse(returns["output"], batch, self.lat_weights)
+
         self.log("val_loss", returns["loss"])
+        self.log("val_mae", mae)
+        self.log("val_rmse", rmse)
 
     @log_exec_time
     def on_validation_epoch_end(self) -> Dict[str, torch.Tensor]:
@@ -141,20 +147,23 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:
-        if not self.testModelEvaluator:
-            self.testModelEvaluator = ModelEvaluator(
-                self.trainer.train_dataloader.dataset.get_clima_mean(),
-                self.lat_weights,
-                self.trainer.test_dataloaders,
-                self.fig_path,
-            )
         returns = self.model.step(
             batch,
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
-        self.testModelEvaluator.update(returns["output"], batch_index)
-        self.log("val_loss", returns["loss"])
+        if self.clima_mean:
+            acc = weighted_acc(
+                returns["output"], batch, self.lat_weights, self.clima_mean
+            )
+            self.log("test_acc", acc)
+
+        mae = weighted_mae(returns["output"], batch, self.lat_weights)
+        rmse = weighted_rmse(returns["output"], batch, self.lat_weights)
+
+        self.log("test_loss", returns["loss"])
+        self.log("test_mae", mae)
+        self.log("test_rmse", rmse)
 
     @log_exec_time
     def on_test_epoch_end(self) -> Dict[str, torch.Tensor]:

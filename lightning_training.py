@@ -56,10 +56,8 @@ def init_model(run):
 
 
 def train():
-    wandb_offline = os.environ.get("WANDB_OFFLINE", "false").lower() == "true"
-    wandb_mode = "offline" if wandb_offline else "online"
     wandb_dir = os.environ.get("WANDB_DIR", None)
-    with wandb.init(dir=wandb_dir, mode=wandb_mode) as run:
+    with wandb.init(dir=wandb_dir) as run:
         config = run.config
         model = init_model(run)
 

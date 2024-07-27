@@ -25,7 +25,7 @@ export RAW_FC_LAYER=False
 export SKIP_DATA_PREPARATION=true
 export DEVICES=1
 export NODES=1
-export WANDB_OFFLINE=true
+export WANDB_MODE=offline
 
 # Ausführen des Trainingsskripts
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/lightning_training.py

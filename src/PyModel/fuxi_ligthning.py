@@ -45,7 +45,7 @@ class FuXi(L.LightningModule):
 
         self.config = autoregression_config
         self.optimizer_config = optimizer_config
-        self.lat_weights = get_latitude_weights(LAT)
+        self.lat_weights = get_latitude_weights(LAT).to(self.device)
         self.save_hyperparameters(
             "input_vars",
             "channels",

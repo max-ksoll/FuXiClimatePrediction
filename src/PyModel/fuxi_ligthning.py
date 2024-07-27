@@ -59,19 +59,6 @@ class FuXi(L.LightningModule):
         self.lat_weights = self.lat_weights.to(self.device)
 
     def on_train_epoch_end(self) -> None:
-        if self.current_epoch == 0:
-            self.valModelEvaluator = ModelEvaluator(
-                self.trainer.train_dataloader.dataset.get_clima_mean(),
-                self.lat_weights,
-                self.trainer.val_dataloaders,
-                self.fig_path,
-            )
-            self.testModelEvaluator = ModelEvaluator(
-                self.trainer.train_dataloader.dataset.get_clima_mean(),
-                self.lat_weights,
-                self.trainer.test_dataloaders,
-                self.fig_path,
-            )
         old_auto_steps = self.autoregression_steps
         if (
             config_epoch_to_autoregression_steps(self.config, self.current_epoch)
@@ -108,6 +95,13 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
+        if not self.valModelEvaluator:
+            self.valModelEvaluator = ModelEvaluator(
+                self.trainer.train_dataloader.dataset.get_clima_mean(),
+                self.lat_weights,
+                self.trainer.val_dataloaders,
+                self.fig_path,
+            )
         returns = self.model.step(
             batch,
             self.lat_weights,
@@ -147,6 +141,13 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:
+        if not self.testModelEvaluator:
+            self.testModelEvaluator = ModelEvaluator(
+                self.trainer.train_dataloader.dataset.get_clima_mean(),
+                self.lat_weights,
+                self.trainer.test_dataloaders,
+                self.fig_path,
+            )
         returns = self.model.step(
             batch,
             self.lat_weights,

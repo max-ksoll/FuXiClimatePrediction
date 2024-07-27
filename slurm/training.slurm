@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
 #SBATCH --cpus-per-task=20            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
 #SBATCH --gres=gpu:1                 # Anzahl der GPUs pro Knoten
-#SBATCH --time=00:30:00              # Laufzeit (hh:mm:ss)
+#SBATCH --time=04:00:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service

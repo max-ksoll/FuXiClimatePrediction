@@ -130,7 +130,7 @@ def get_dataloader_params(
     return {
         "batch_size": batch_size,
         "shuffle": is_train_dataloader,
-        "num_workers": os.cpu_count() // 2,
+        "num_workers": min(os.cpu_count() // 2, 8),
         "pin_memory": True,
     }
 

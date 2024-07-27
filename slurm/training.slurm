@@ -17,7 +17,7 @@ source /gpfs/projects/ehpc03/max/venv/bin/activate
 
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
 export FIG_PATH="/gpfs/projects/ehpc03/max/data-viz"
-export WANDB_DIR="/gpfs/projects/ehpc03/max/wandb"
+export WANDB_DIR="/gpfs/projects/ehpc03/max"
 export MODEL_DIR="/gpfs/projects/ehpc03/max/models"
 export RAW_FC_LAYER=False
 export SKIP_DATA_PREPARATION=true

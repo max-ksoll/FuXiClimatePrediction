@@ -1,6 +1,5 @@
 import logging
 import os
-print(os.environ)
 
 import torch
 import lightning as L
@@ -58,7 +57,7 @@ def init_model(run):
 
 def train():
     wandb_dir = os.environ.get("WANDB_DIR", None)
-    with wandb.init(dir=wandb_dir) as run:
+    with wandb.init(dir=wandb_dir, mode='offline') as run:
         config = run.config
         model = init_model(run)
 

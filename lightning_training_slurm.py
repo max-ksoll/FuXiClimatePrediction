@@ -17,19 +17,18 @@ from src.wandb_utils import get_optimizer_config, get_model_parameter
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-device = "auto"
-if torch.backends.mps.is_available():
-    device = "cpu"
+torch.set_float32_matmul_precision("medium")
 
 
 def get_autoregression_step_epochs():
     return {
-        "10": 1,  # until epoch n -> m autoregression step
-        "20": 2,
-        "30": 4,
-        "40": 6,
-        "50": 8,
-        "-1": 10,
+        "25": 2,
+        "50": 4,
+        "75": 6,
+        "100": 8,
+        "125": 10,
+        "150": 12,
+        "-1": 24,
     }
 
 
@@ -37,9 +36,9 @@ def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
     logger.info("Creating Model")
     model_parameter = get_model_parameter()
     # TODO warum so kompliziert?
-    channels = 256
-    transformer_blocks = 8
-    transformer_heads = 8
+    channels = 2048
+    transformer_blocks = 24
+    transformer_heads = 32
     optimizer_config = {
         "optimizer_config_lr": 1e-5,
         "optimizer_config_betas": [(0.9, 0.95)],
@@ -52,7 +51,7 @@ def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
     raw_fc = os.environ.get("RAW_FC_LAYER", "false").lower() == "true"
     clim = get_clima_mean(
         dataset_path=os.path.join(data_dir, f"{start_year}_{end_year}.zarr"),
-        means_file=os.path.join(data_dir, f"mean_{start_year}_{end_year}.zarr")
+        means_file=os.path.join(data_dir, f"mean_{start_year}_{end_year}.zarr"),
     )
     model = FuXi(
         35,
@@ -63,7 +62,7 @@ def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
         optimizer_config=optimizer_config,
         fig_path=os.environ.get("FIG_PATH"),
         raw_fc_layer=raw_fc,
-        clima_mean=clim
+        clima_mean=clim,
     )
     return model
 
@@ -95,7 +94,7 @@ def train():
             num_nodes = 1
 
         trainer = L.Trainer(
-            accelerator=device,
+            accelerator="auto",
             strategy=strategy,
             devices=devices,
             num_nodes=num_nodes,
@@ -103,7 +102,7 @@ def train():
             callbacks=[checkpoint_callback, StochasticWeightAveraging(swa_lrs=1e-2)],
             gradient_clip_val=0.5,
             reload_dataloaders_every_n_epochs=1,
-            max_epochs=200,
+            max_epochs=1000,
         )
 
         skip_data_prep = (

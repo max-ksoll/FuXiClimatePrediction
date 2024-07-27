@@ -41,7 +41,7 @@ def init_model():
     transformer_heads = 8
     optimizer_config = {
         "optimizer_config_lr": {"value": 1e-5},
-        "optimizer_config_betas": {"value": (0.9, 0.95)},
+        "optimizer_config_betas": {"value": [(0.9, 0.95)]},
         "optimizer_config_weight_decay": {"value": 0.1},
         "optimizer_config_T_0": {"value": 2},
         "optimizer_config_eta_min": {"value": 1e-7},

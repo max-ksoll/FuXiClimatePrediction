@@ -103,7 +103,7 @@ class FuXi(L.LightningModule):
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
-        if self.clima_mean:
+        if self.clima_mean is not None:
             acc = weighted_acc(
                 returns["output"], batch, self.lat_weights, self.clima_mean
             )
@@ -121,6 +121,33 @@ class FuXi(L.LightningModule):
         if self.trainer.is_global_zero:
             model_eval = self.valModelEvaluator.evaluate()
             log_eval_dict(model_eval, "val")
+            return model_eval
+
+    @log_exec_time
+    def test_step(self, batch, batch_index) -> None:
+        returns = self.model.step(
+            batch,
+            self.lat_weights,
+            autoregression_steps=self.autoregression_steps,
+        )
+        if self.clima_mean is not None:
+            acc = weighted_acc(
+                returns["output"], batch, self.lat_weights, self.clima_mean
+            )
+            self.log("test_acc", acc)
+
+        mae = weighted_mae(returns["output"], batch, self.lat_weights)
+        rmse = weighted_rmse(returns["output"], batch, self.lat_weights)
+
+        self.log("test_loss", returns["loss"])
+        self.log("test_mae", mae)
+        self.log("test_rmse", rmse)
+
+    @log_exec_time
+    def on_test_epoch_end(self) -> Dict[str, torch.Tensor]:
+        if self.trainer.is_global_zero:
+            model_eval = self.testModelEvaluator.evaluate()
+            log_eval_dict(model_eval, "test")
             return model_eval
 
     def configure_optimizers(self):
@@ -144,30 +171,3 @@ class FuXi(L.LightningModule):
             eta_min=self.optimizer_config["optimizer_config_eta_min"],
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
-
-    @log_exec_time
-    def test_step(self, batch, batch_index) -> None:
-        returns = self.model.step(
-            batch,
-            self.lat_weights,
-            autoregression_steps=self.autoregression_steps,
-        )
-        if self.clima_mean:
-            acc = weighted_acc(
-                returns["output"], batch, self.lat_weights, self.clima_mean
-            )
-            self.log("test_acc", acc)
-
-        mae = weighted_mae(returns["output"], batch, self.lat_weights)
-        rmse = weighted_rmse(returns["output"], batch, self.lat_weights)
-
-        self.log("test_loss", returns["loss"])
-        self.log("test_mae", mae)
-        self.log("test_rmse", rmse)
-
-    @log_exec_time
-    def on_test_epoch_end(self) -> Dict[str, torch.Tensor]:
-        if self.trainer.is_global_zero:
-            model_eval = self.testModelEvaluator.evaluate()
-            log_eval_dict(model_eval, "test")
-            return model_eval

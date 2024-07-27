@@ -117,13 +117,6 @@ class FuXi(L.LightningModule):
         self.log("val_rmse", rmse)
 
     @log_exec_time
-    def on_validation_epoch_end(self) -> Dict[str, torch.Tensor]:
-        if self.trainer.is_global_zero:
-            model_eval = self.valModelEvaluator.evaluate()
-            log_eval_dict(model_eval, "val")
-            return model_eval
-
-    @log_exec_time
     def test_step(self, batch, batch_index) -> None:
         returns = self.model.step(
             batch,
@@ -142,13 +135,6 @@ class FuXi(L.LightningModule):
         self.log("test_loss", returns["loss"])
         self.log("test_mae", mae)
         self.log("test_rmse", rmse)
-
-    @log_exec_time
-    def on_test_epoch_end(self) -> Dict[str, torch.Tensor]:
-        if self.trainer.is_global_zero:
-            model_eval = self.testModelEvaluator.evaluate()
-            log_eval_dict(model_eval, "test")
-            return model_eval
 
     def configure_optimizers(self):
         for key in OPTIMIZER_REQUIRED_KEYS:

@@ -45,7 +45,7 @@ class FuXi(L.LightningModule):
 
         self.config = autoregression_config
         self.optimizer_config = optimizer_config
-        self.lat_weights = get_latitude_weights(LAT).to(self.device)
+        self.lat_weights = get_latitude_weights(LAT)
         self.save_hyperparameters(
             "input_vars",
             "channels",
@@ -54,6 +54,9 @@ class FuXi(L.LightningModule):
             "raw_fc_layer",
         )
         self.fig_path = fig_path
+
+    def on_fit_start(self) -> None:
+        self.lat_weights = self.lat_weights.to(self.device)
 
     def on_train_epoch_end(self) -> None:
         if self.current_epoch == 0:

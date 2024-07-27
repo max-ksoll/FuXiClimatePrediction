@@ -105,7 +105,7 @@ class FuXi(L.LightningModule):
         )
         if self.clima_mean is not None:
             acc = weighted_acc(
-                returns["output"], batch, self.lat_weights, self.clima_mean
+                returns["output"], batch[:, 2:], self.lat_weights, self.clima_mean
             )
             self.log("val_acc", acc)
 
@@ -132,7 +132,7 @@ class FuXi(L.LightningModule):
         )
         if self.clima_mean is not None:
             acc = weighted_acc(
-                returns["output"], batch, self.lat_weights, self.clima_mean
+                returns["output"], batch[:, 2:], self.lat_weights, self.clima_mean
             )
             self.log("test_acc", acc)
 

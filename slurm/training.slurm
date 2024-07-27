@@ -26,4 +26,4 @@ export NODES=1
 export WANDB_MODE=offline
 
 # Ausführen des Trainingsskripts
-srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/lightning_training.py
+srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/lightning_training_slurm.py

@@ -9,7 +9,6 @@ def get_sweep():
     sweep_config = {
         "method": "grid",
         "name": name,
-        "mode": "offline",
     }
     # metric = {"name": "mse", "goal": "minimize"}
     # sweep_config["metric"] = metric

@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Dict
 
 import lightning as L
 from torch.utils.data import DataLoader
@@ -22,8 +23,10 @@ class FuXiDataModule(L.LightningDataModule):
         val_end_year: int,
         test_start_year: int,
         test_end_year: int,
-        config: Config,
+        autoregression_step_epochs: Dict[str, int] = None,
+        config: Config = None,
         skip_data_preparing: bool = False,
+        batch_size: int = 1,
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -49,8 +52,13 @@ class FuXiDataModule(L.LightningDataModule):
         self.test_mean_path = os.path.join(
             data_dir, f"mean_{val_start_year}_{val_end_year}.zarr"
         )
-        self.batch_size = config.get("batch_size", 1)
-        self.autoregression_steps_epoch = config.get("autoregression_steps_epochs")
+        assert config or autoregression_step_epochs
+        if config:
+            self.batch_size = config.get("batch_size", 1)
+            self.autoregression_steps_epoch = config.get("autoregression_steps_epoch")
+        else:
+            self.batch_size = batch_size
+            self.autoregression_steps_epoch = autoregression_step_epochs
         self.skip_data_preparing = skip_data_preparing
         self.train_ds = None
         self.val_ds = None

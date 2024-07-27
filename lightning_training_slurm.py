@@ -11,6 +11,7 @@ import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
+from src.utils import get_clima_mean
 from src.wandb_utils import get_optimizer_config, get_model_parameter
 
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +33,7 @@ def get_autoregression_step_epochs():
     }
 
 
-def init_model():
+def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
     logger.info("Creating Model")
     model_parameter = get_model_parameter()
     # TODO warum so kompliziert?
@@ -49,6 +50,10 @@ def init_model():
     }
     autoregression_step_epochs = get_autoregression_step_epochs()
     raw_fc = os.environ.get("RAW_FC_LAYER", "false").lower() == "true"
+    clim = get_clima_mean(
+        dataset_path=os.path.join(data_dir, f"{start_year}_{end_year}.zarr"),
+        means_file=os.path.join(data_dir, f"mean_{start_year}_{end_year}.zarr")
+    )
     model = FuXi(
         35,
         channels,
@@ -58,6 +63,7 @@ def init_model():
         optimizer_config=optimizer_config,
         fig_path=os.environ.get("FIG_PATH"),
         raw_fc_layer=raw_fc,
+        clima_mean=clim
     )
     return model
 
@@ -65,7 +71,11 @@ def init_model():
 def train():
     wandb_dir = os.environ.get("WANDB_DIR", None)
     with wandb.init(dir=wandb_dir, mode="offline") as run:
-        model = init_model()
+        data_dir = os.environ.get("DATA_PATH", False)
+        if not data_dir:
+            raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
+
+        model = init_model(data_dir, 1958, 2005)
 
         wandb_logger = WandbLogger(id=run.id, resume="allow")
         wandb_logger.watch(model, log_freq=100)
@@ -95,10 +105,6 @@ def train():
             reload_dataloaders_every_n_epochs=1,
             max_epochs=200,
         )
-
-        data_dir = os.environ.get("DATA_PATH", False)
-        if not data_dir:
-            raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
 
         skip_data_prep = (
             os.environ.get("SKIP_DATA_PREPARATION", "false").lower() == "true"

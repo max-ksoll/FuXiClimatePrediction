@@ -26,6 +26,7 @@ class FuXi(L.LightningModule):
         autoregression_config: Dict[str, int],
         optimizer_config: Dict[str, Any],
         fig_path: str,
+        clima_mean: torch.Tensor,
         raw_fc_layer=False,
     ):
         super().__init__()
@@ -55,12 +56,11 @@ class FuXi(L.LightningModule):
             "raw_fc_layer",
         )
         self.fig_path = fig_path
+        self.clima_mean = clima_mean
 
     def on_fit_start(self) -> None:
         self.lat_weights = self.lat_weights.to(self.device)
-        self.clima_mean = self.trainer.train_dataloader.dataset.get_clima_mean().to(
-            self.device
-        )
+        self.clima_mean = self.clima_mean.to(self.device)
 
     def on_train_epoch_end(self) -> None:
         old_auto_steps = self.autoregression_steps

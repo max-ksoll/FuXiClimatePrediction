@@ -226,4 +226,4 @@ def get_clima_mean(
         dim=0,
     )
 
-    return (clim - min) / (max - min)
+    return (clim - min[:, None, None]) / (max - min)[:, None, None]

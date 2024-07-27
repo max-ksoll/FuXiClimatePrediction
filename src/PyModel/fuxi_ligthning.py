@@ -105,7 +105,11 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
-        returns, ts, lat_weights = self.batch_step(batch)
+        returns = self.model.step(
+            batch,
+            self.lat_weights,
+            autoregression_steps=self.autoregression_steps,
+        )
         self.valModelEvaluator.update(returns["output"], batch_index)
         self.log("val_loss", returns["loss"])
 
@@ -140,7 +144,11 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:
-        returns, ts, lat_weights = self.batch_step(batch)
+        returns = self.model.step(
+            batch,
+            self.lat_weights,
+            autoregression_steps=self.autoregression_steps,
+        )
         self.testModelEvaluator.update(returns["output"], batch_index)
         self.log("val_loss", returns["loss"])
 
@@ -150,15 +158,3 @@ class FuXi(L.LightningModule):
             model_eval = self.testModelEvaluator.evaluate()
             log_eval_dict(model_eval, "test")
             return model_eval
-
-    def batch_step(self, batch):
-        ts, lat_weights = batch
-        return (
-            self.model.step(
-                ts,
-                lat_weights,
-                autoregression_steps=self.autoregression_steps,
-            ),
-            ts,
-            lat_weights,
-        )

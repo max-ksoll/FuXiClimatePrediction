@@ -109,8 +109,8 @@ class FuXi(L.LightningModule):
             )
             self.log("val_acc", acc)
 
-        mae = weighted_mae(returns["output"], batch, self.lat_weights)
-        rmse = weighted_rmse(returns["output"], batch, self.lat_weights)
+        mae = weighted_mae(returns["output"], batch[:, 2:], self.lat_weights)
+        rmse = weighted_rmse(returns["output"], batch[:, 2:], self.lat_weights)
 
         self.log("val_loss", returns["loss"])
         self.log("val_mae", mae)
@@ -129,8 +129,8 @@ class FuXi(L.LightningModule):
             )
             self.log("test_acc", acc)
 
-        mae = weighted_mae(returns["output"], batch, self.lat_weights)
-        rmse = weighted_rmse(returns["output"], batch, self.lat_weights)
+        mae = weighted_mae(returns["output"], batch[:, 2:], self.lat_weights)
+        rmse = weighted_rmse(returns["output"], batch[:, 2:], self.lat_weights)
 
         self.log("test_loss", returns["loss"])
         self.log("test_mae", mae)

@@ -1,5 +1,6 @@
 import logging
 import os
+print(os.environ)
 
 import torch
 import lightning as L

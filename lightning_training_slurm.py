@@ -103,7 +103,7 @@ def train():
         # vor allem, wenn wir auf den voll skalierten Daten trainieren könnte das sinvoll werden
         # https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.FSDPStrategy.html
         strategy = DDPStrategy(find_unused_parameters=False) if multi_gpu else "auto"
-        num_nodes = os.environ.get("NODES", 1)
+        num_nodes = int(os.environ.get("NODES", 1))
 
         trainer = L.Trainer(
             accelerator="auto",

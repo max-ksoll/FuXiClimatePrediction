@@ -59,6 +59,9 @@ class FuXiDataset(Dataset):
         self.len = self.idxs.shape[0]
         logger.debug(f"Number of Examples in DS {self.len}")
 
+    def get_autoregression(self):
+        return self.max_autoregression_steps - 2
+
     def init_max_min(self):
         logger.debug("Loading Min Tensor")
         self.min = self.get_from_means_file("min")

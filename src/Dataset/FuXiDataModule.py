@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import lightning as L
 from torch.utils.data import DataLoader
@@ -60,8 +60,11 @@ class FuXiDataModule(L.LightningDataModule):
             self.batch_size = batch_size
             self.autoregression_steps_epoch = autoregression_step_epochs
         self.skip_data_preparing = skip_data_preparing
-        self.train_ds = None
-        self.val_ds = None
+        self.train_ds: Optional[FuXiDataset] = None
+        self.val_ds: Optional[FuXiDataset] = None
+        self.autoregression_steps = config_epoch_to_autoregression_steps(
+            self.autoregression_steps_epoch, 0
+        )
 
     def prepare_data(self):
         if self.skip_data_preparing:
@@ -79,29 +82,38 @@ class FuXiDataModule(L.LightningDataModule):
         builder.generate_data()
 
     def setup(self, stage: str):
-        ...
+        self.train_ds = FuXiDataset(
+            self.train_ds_path, self.train_mean_path, self.autoregression_steps
+        )
+        self.val_ds = FuXiDataset(
+            self.val_ds_path, self.val_mean_path, self.autoregression_steps
+        )
 
     def train_dataloader(self):
+        current_autoregression_steps = config_epoch_to_autoregression_steps(
+            self.autoregression_steps_epoch, self.trainer.current_epoch
+        )
+        if current_autoregression_steps != self.train_ds.get_autoregression():
+            self.autoregression_steps = current_autoregression_steps
+            self.train_ds = FuXiDataset(
+                self.train_ds_path, self.train_mean_path, self.autoregression_steps
+            )
         return DataLoader(
-            FuXiDataset(
-                self.train_ds_path,
-                self.train_mean_path,
-                config_epoch_to_autoregression_steps(
-                    self.autoregression_steps_epoch, self.trainer.current_epoch
-                ),
-            ),
+            self.train_ds,
             **get_dataloader_params(self.batch_size, is_train_dataloader=True),
         )
 
     def val_dataloader(self):
+        current_autoregression_steps = config_epoch_to_autoregression_steps(
+            self.autoregression_steps_epoch, self.trainer.current_epoch
+        )
+        if current_autoregression_steps != self.val_ds.get_autoregression():
+            self.autoregression_steps = current_autoregression_steps
+            self.val_ds = FuXiDataset(
+                self.val_ds_path, self.val_mean_path, self.autoregression_steps
+            )
         return DataLoader(
-            FuXiDataset(
-                self.val_ds_path,
-                self.val_mean_path,
-                config_epoch_to_autoregression_steps(
-                    self.autoregression_steps_epoch, self.trainer.current_epoch
-                ),
-            ),
+            self.val_ds,
             **get_dataloader_params(self.batch_size),
         )
 

@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict
+from typing_extensions import Self
 
 import lightning as L
 import torch
@@ -58,11 +59,11 @@ class FuXi(L.LightningModule):
         self.fig_path = fig_path
         self.clima_mean = clima_mean
 
-    def on_fit_start(self) -> None:
-        self.lat_weights = self.lat_weights.to(self.device)
-        self.clima_mean = self.clima_mean.to(self.device)
+    # def on_fit_start(self) -> None:
+    #     self.lat_weights = self.lat_weights.to(self.device)
+    #     self.clima_mean = self.clima_mean.to(self.device)
 
-    def on_train_epoch_end(self) -> None:
+    def on_train_epoch_start(self) -> None:
         old_auto_steps = self.autoregression_steps
         if (
             config_epoch_to_autoregression_steps(self.config, self.current_epoch)
@@ -72,6 +73,12 @@ class FuXi(L.LightningModule):
             self.autoregression_steps = config_epoch_to_autoregression_steps(
                 self.config, self.current_epoch
             )
+
+    def to(self, *args: Any, **kwargs: Any) -> Self:
+        super().to(*args, **kwargs)
+        self.lat_weights = self.lat_weights.to(*args, **kwargs)
+        self.clima_mean = self.clima_mean.to(*args, **kwargs)
+        return self
 
     def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         ts = args[0][0]
@@ -92,8 +99,9 @@ class FuXi(L.LightningModule):
             return_loss=True,
             return_out=False,
         )["loss"]
-        self.log("train_loss", loss)
-        self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
+        self.log("train_loss", loss, sync_dist=True)
+        if self.trainer.is_global_zero:
+            self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
         return loss
 
     @log_exec_time
@@ -107,14 +115,14 @@ class FuXi(L.LightningModule):
             acc = weighted_acc(
                 returns["output"], batch[:, 2:], self.lat_weights, self.clima_mean
             )
-            self.log("val_acc", acc)
+            self.log("val_acc", acc, sync_dist=True)
 
         mae = weighted_mae(returns["output"], batch[:, 2:], self.lat_weights)
         rmse = weighted_rmse(returns["output"], batch[:, 2:], self.lat_weights)
 
-        self.log("val_loss", returns["loss"])
-        self.log("val_mae", mae)
-        self.log("val_rmse", rmse)
+        self.log("val_loss", returns["loss"], sync_dist=True)
+        self.log("val_mae", mae, sync_dist=True)
+        self.log("val_rmse", rmse, sync_dist=True)
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:
@@ -127,14 +135,14 @@ class FuXi(L.LightningModule):
             acc = weighted_acc(
                 returns["output"], batch[:, 2:], self.lat_weights, self.clima_mean
             )
-            self.log("test_acc", acc)
+            self.log("test_acc", acc, sync_dist=True)
 
         mae = weighted_mae(returns["output"], batch[:, 2:], self.lat_weights)
         rmse = weighted_rmse(returns["output"], batch[:, 2:], self.lat_weights)
 
-        self.log("test_loss", returns["loss"])
-        self.log("test_mae", mae)
-        self.log("test_rmse", rmse)
+        self.log("test_loss", returns["loss"], sync_dist=True)
+        self.log("test_mae", mae, sync_dist=True)
+        self.log("test_rmse", rmse, sync_dist=True)
 
     def configure_optimizers(self):
         for key in OPTIMIZER_REQUIRED_KEYS:

@@ -227,3 +227,17 @@ def get_clima_mean(
     )
 
     return (clim - min[:, None, None]) / (max - min)[:, None, None]
+
+
+if __name__ == "__main__":
+    auto = {
+        "25": 1,
+        "50": 2,
+        "75": 4,
+        "100": 6,
+        "125": 8,
+        "150": 10,
+        "-1": 12,
+    }
+    for i in range(100):
+        print(i, config_epoch_to_autoregression_steps(auto, i))

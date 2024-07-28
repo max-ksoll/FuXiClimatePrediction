@@ -159,11 +159,9 @@ class DownBlock(nn.Module):
         self.conv_adjust = nn.Conv2d(out_channels * 2, out_channels, kernel_size=1)
 
     def forward(self, x):
-        out = self.conv1(x)
-        residual = self.residual_block(out)
-        out = torch.cat((out, residual), dim=1)
-        out = self.conv_adjust(out)
-        return out
+        x = torch.cat((self.conv1(x), self.residual_block(x)), dim=1)
+        x = self.conv_adjust(x)
+        return x
 
 
 class UpBlock(nn.Module):

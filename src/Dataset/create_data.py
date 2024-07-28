@@ -182,7 +182,7 @@ class DataDownloader:
                     "31",
                 ],
                 "time": ["00:00", "06:00", "12:00", "18:00"],
-                "grid": [1.5, 1.5],
+                "grid": [LAT_LON_GRID_SIZE[0], LAT_LON_GRID_SIZE[1]],
             },
             file_path,
         )

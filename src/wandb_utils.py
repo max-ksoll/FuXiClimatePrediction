@@ -17,18 +17,18 @@ def get_model_parameter():
     return get_specific_config("model_parameter")
 
 
-def log_eval_dict(model_eval, testSet):
+def log_eval_dict(model_eval, ds_type):
     log_data = {
-        f"{testSet}_acc": model_eval.get("acc", 0),
-        f"{testSet}_mae": model_eval.get("mae", 0),
-        f"{testSet}_rmse": model_eval.get("rmse", 0),
-        f"{testSet}_val_loss": model_eval.get("val_loss", 0),
-        f"{testSet}_img": {},
+        # f"{ds_type}_acc": model_eval.get("acc", 0),
+        # f"{ds_type}_mae": model_eval.get("mae", 0),
+        # f"{ds_type}_rmse": model_eval.get("rmse", 0),
+        # f"{ds_type}_val_loss": model_eval.get("val_loss", 0),
+        f"{ds_type}_img": {},
     }
     for eval_type in ["average_difference_over_time", "model_out_minus_clim"]:
-        log_data[f"{testSet}_img"][eval_type] = {}
-        for var, paths in model_eval[f"{testSet}_img"][eval_type].items():
-            log_data[f"{testSet}_img"][eval_type][var] = [
+        log_data[f"{ds_type}_img"][eval_type] = {}
+        for var, paths in model_eval[f"{ds_type}_img"][eval_type].items():
+            log_data[f"{ds_type}_img"][eval_type][var] = [
                 wandb.Image(path) for path in paths
             ]
 

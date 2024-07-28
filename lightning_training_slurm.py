@@ -18,6 +18,13 @@ logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision("medium")
 
 
+def get_config():
+    config = dict()
+    config["autoregression_step_epochs"] = get_autoregression_step_epochs()
+    config["model_parameter"] = get_model_parameter()
+    config["opt_config"] = get_opt_config()
+
+
 def get_autoregression_step_epochs():
     return {
         "25": 2,
@@ -30,30 +37,36 @@ def get_autoregression_step_epochs():
     }
 
 
-def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
-    logger.info("Creating Model")
-    # TODO warum so kompliziert?
-    channels = 2048
-    transformer_blocks = 40
-    transformer_heads = 16
-    optimizer_config = {
+def get_model_parameter():
+    return {"channels": 2048, "transformer_blocks": 40, "transformer_heads": 16}
+
+
+def get_opt_config():
+    return {
         "optimizer_config_lr": 1e-5,
         "optimizer_config_betas": [(0.9, 0.95)],
         "optimizer_config_weight_decay": 0.1,
         "optimizer_config_T_max": 200,
         "optimizer_config_eta_min": 1e-8,
     }
+
+
+def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
+    logger.info("Creating Model")
+    # TODO warum so kompliziert?
+    optimizer_config = get_opt_config()
     autoregression_step_epochs = get_autoregression_step_epochs()
     raw_fc = os.environ.get("RAW_FC_LAYER", "false").lower() == "true"
     clim = get_clima_mean(
         dataset_path=os.path.join(data_dir, f"{start_year}_{end_year}.zarr"),
         means_file=os.path.join(data_dir, f"mean_{start_year}_{end_year}.zarr"),
     )
+    model_params = get_model_parameter()
     model = FuXi(
         35,
-        channels,
-        transformer_blocks,
-        transformer_heads,
+        model_params["channels"],
+        model_params["transformer_blocks"],
+        model_params["transformer_heads"],
         autoregression_step_epochs,
         optimizer_config=optimizer_config,
         fig_path=os.environ.get("FIG_PATH"),
@@ -65,7 +78,12 @@ def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
 
 def train():
     wandb_dir = os.environ.get("WANDB_DIR", None)
-    with wandb.init(dir=wandb_dir, mode="offline") as run:
+    with wandb.init(
+        project="FuXiClimatePrediction",
+        dir=wandb_dir,
+        mode="offline",
+        config=get_config(),
+    ) as run:
         data_dir = os.environ.get("DATA_PATH", False)
         if not data_dir:
             raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
@@ -80,19 +98,18 @@ def train():
             save_top_k=-1,
         )
 
-        if os.environ.get("MULTI_GPU", False):
-            strategy = DDPStrategy(find_unused_parameters=False)
-            devices = os.environ.get("DEVICES", 1)
-            num_nodes = os.environ.get("NODES", 1)
-        else:
-            strategy = "auto"
-            devices = "auto"
-            num_nodes = 1
+        multi_gpu = os.environ.get("MULTI_GPU", "false") == "true"
+        # TODO hier könnte man mal über fdsp nachdenken
+        # vor allem, wenn wir auf den voll skalierten Daten trainieren könnte das sinvoll werden
+        # https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.FSDPStrategy.html
+        strategy = DDPStrategy(find_unused_parameters=False) if multi_gpu else "auto"
+        num_nodes = os.environ.get("NODES", 1)
 
         trainer = L.Trainer(
             accelerator="auto",
+            precision="16-mixed",
             strategy=strategy,
-            devices=devices,
+            devices=-1,
             num_nodes=num_nodes,
             logger=wandb_logger,
             callbacks=[checkpoint_callback, StochasticWeightAveraging(swa_lrs=1e-2)],

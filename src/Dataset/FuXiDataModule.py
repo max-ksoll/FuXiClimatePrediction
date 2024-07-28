@@ -8,7 +8,7 @@ from wandb import Config
 
 from src.Dataset.create_data import DataBuilder
 from src.Dataset.fuxi_dataset import FuXiDataset
-from src.utils import get_dataloader_params
+from src.utils import get_dataloader_params, config_epoch_to_autoregression_steps
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,9 @@ class FuXiDataModule(L.LightningDataModule):
             FuXiDataset(
                 self.train_ds_path,
                 self.train_mean_path,
-                self.trainer.model.autoregression_steps,
+                config_epoch_to_autoregression_steps(
+                    self.autoregression_steps_epoch, self.trainer.current_epoch
+                ),
             ),
             **get_dataloader_params(self.batch_size, is_train_dataloader=True),
         )
@@ -96,7 +98,9 @@ class FuXiDataModule(L.LightningDataModule):
             FuXiDataset(
                 self.val_ds_path,
                 self.val_mean_path,
-                self.trainer.model.autoregression_steps,
+                config_epoch_to_autoregression_steps(
+                    self.autoregression_steps_epoch, self.trainer.current_epoch
+                ),
             ),
             **get_dataloader_params(self.batch_size),
         )
@@ -106,7 +110,9 @@ class FuXiDataModule(L.LightningDataModule):
             FuXiDataset(
                 self.test_ds_path,
                 self.test_mean_path,
-                self.trainer.model.autoregression_steps,
+                config_epoch_to_autoregression_steps(
+                    self.autoregression_steps_epoch, self.trainer.current_epoch
+                ),
             ),
             **get_dataloader_params(self.batch_size),
         )

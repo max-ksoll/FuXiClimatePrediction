@@ -155,11 +155,14 @@ class DownBlock(nn.Module):
             in_channels, out_channels, kernel_size=3, stride=2, padding=1
         )
         self.residual_block = ResidualBlock(out_channels)
-        self.layers = torch.nn.ModuleList([self.conv1, self.residual_block])
         self.conv_adjust = nn.Conv2d(out_channels * 2, out_channels, kernel_size=1)
+        self.layers = torch.nn.ModuleList(
+            [self.conv1, self.residual_block, self.conv_adjust]
+        )
 
     def forward(self, x):
-        x = torch.cat((self.conv1(x), self.residual_block(x)), dim=1)
+        x = self.conv1(x)
+        x = torch.cat((x, self.residual_block(x)), dim=1)
         x = self.conv_adjust(x)
         return x
 
@@ -172,8 +175,10 @@ class UpBlock(nn.Module):
             in_channels * 2, in_channels, kernel_size=2, stride=2
         )
         self.residual_block = ResidualBlock(out_channels)
-        self.layers = torch.nn.ModuleList([self.upsample, self.residual_block])
         self.conv_adjust = nn.Conv2d(out_channels * 2, out_channels, kernel_size=1)
+        self.layers = torch.nn.ModuleList(
+            [self.upsample, self.residual_block, self.conv_adjust]
+        )
 
     def forward(self, x, skip_connection):
         x = torch.cat([x, skip_connection], dim=1)

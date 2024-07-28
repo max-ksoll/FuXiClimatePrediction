@@ -4,8 +4,7 @@ OPTIMIZER_REQUIRED_KEYS = [
     "optimizer_config_lr",
     "optimizer_config_betas",
     "optimizer_config_weight_decay",
-    "optimizer_config_T_0",
-    "optimizer_config_T_mult",
+    "optimizer_config_T_max",
     "optimizer_config_eta_min",
 ]
 

@@ -178,3 +178,4 @@ bin/
 
 tmp
 packages
+wandb_offline_sync

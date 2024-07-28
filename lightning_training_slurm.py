@@ -1,8 +1,8 @@
 import logging
 import os
 
-import torch
 import lightning as L
+import torch
 from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.strategies import DDPStrategy
@@ -10,9 +10,7 @@ from lightning.pytorch.strategies import DDPStrategy
 import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.PyModel.fuxi_ligthning import FuXi
-from src.sweep_config import getSweepID
 from src.utils import get_clima_mean
-from src.wandb_utils import get_optimizer_config, get_model_parameter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,18 +32,16 @@ def get_autoregression_step_epochs():
 
 def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
     logger.info("Creating Model")
-    model_parameter = get_model_parameter()
     # TODO warum so kompliziert?
     channels = 2048
-    transformer_blocks = 24
-    transformer_heads = 32
+    transformer_blocks = 40
+    transformer_heads = 16
     optimizer_config = {
         "optimizer_config_lr": 1e-5,
         "optimizer_config_betas": [(0.9, 0.95)],
         "optimizer_config_weight_decay": 0.1,
-        "optimizer_config_T_0": 2,
-        "optimizer_config_eta_min": 1e-7,
-        "optimizer_config_T_mult": 2,
+        "optimizer_config_T_max": 200,
+        "optimizer_config_eta_min": 1e-8,
     }
     autoregression_step_epochs = get_autoregression_step_epochs()
     raw_fc = os.environ.get("RAW_FC_LAYER", "false").lower() == "true"

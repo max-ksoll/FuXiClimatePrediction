@@ -150,10 +150,15 @@ class FuXi(L.LightningModule):
             betas=(betas[0], betas[1]),
             weight_decay=self.optimizer_config["optimizer_config_weight_decay"],
         )
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        #     optimizer,
+        #     T_0=self.optimizer_config["optimizer_config_T_0"],
+        #     T_mult=self.optimizer_config["optimizer_config_T_mult"],
+        #     eta_min=self.optimizer_config["optimizer_config_eta_min"],
+        # )
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
-            T_0=self.optimizer_config["optimizer_config_T_0"],
-            T_mult=self.optimizer_config["optimizer_config_T_mult"],
+            T_max=self.optimizer_config["optimizer_config_T_max"],
             eta_min=self.optimizer_config["optimizer_config_eta_min"],
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]

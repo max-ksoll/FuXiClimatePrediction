@@ -5,8 +5,8 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
+from src.Dataset.dimensions import LAT, LON
 from src.Dataset.fuxi_dataset import FuXiDataset
-from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
 from src.utils import log_exec_time
 
 import cartopy.crs as ccrs
@@ -64,9 +64,9 @@ class ModelEvaluator:
 
         diff_tensor_list = []
         model_out_minus_clim = []
-        accs = []
-        maes = []
-        rmses = []
+        # accs = []
+        # maes = []
+        # rmses = []
 
         for idx in range(model_preds.shape[0]):
             timeseries = gt[idx]
@@ -223,24 +223,24 @@ class ModelEvaluator:
         return save_path, var_name
 
 
-if __name__ == "__main__":
-    from src.utils import get_latitude_weights
-    from src.Dataset.dimensions import LAT, LON
-    import logging
-
-    logging.basicConfig(level=logging.INFO)
-
-    BS = 3
-    AR = 4
-
-    eval = ModelEvaluator(
-        clima_mean=torch.rand((35, 121, 240)),
-        lat_weights=get_latitude_weights(LAT),
-        fig_path="/Users/ksoll/git/FuXiClimatePrediction/data-viz",
-    )
-    eval.reset()
-    for idx, elem in enumerate(range(21)):
-        gt = torch.rand((BS, AR, 35, 121, 240))
-        model_out = gt + torch.rand_like(gt)
-        eval.update(model_out, gt, idx)
-    print(eval.evaluate())
+# if __name__ == "__main__":
+#     from src.utils import get_latitude_weights
+#     from src.Dataset.dimensions import LAT, LON
+#     import logging
+#
+#     logging.basicConfig(level=logging.INFO)
+#
+#     BS = 3
+#     AR = 4
+#
+#     eval = ModelEvaluator(
+#         clima_mean=torch.rand((35, 121, 240)),
+#         lat_weights=get_latitude_weights(LAT),
+#         fig_path="/Users/ksoll/git/FuXiClimatePrediction/data-viz",
+#     )
+#     eval.reset()
+#     for idx, elem in enumerate(range(21)):
+#         gt = torch.rand((BS, AR, 35, 121, 240))
+#         model_out = gt + torch.rand_like(gt)
+#         eval.update(model_out, gt, idx)
+#     print(eval.evaluate())

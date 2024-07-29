@@ -59,7 +59,7 @@ class FuXi(L.LightningModule):
         )
         self.fig_path = fig_path
         self.clima_mean = clima_mean
-        self.model_evaluator = ModelEvaluator(clima_mean, self.lat_weights, fig_path)
+        # self.model_evaluator = ModelEvaluator(clima_mean, self.lat_weights, fig_path)
         self.log_evaluator_img_every_n_epochs = log_evaluator_img_every_n_epochs
 
     def on_train_epoch_start(self) -> None:
@@ -103,8 +103,8 @@ class FuXi(L.LightningModule):
             self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
         return loss
 
-    def on_validation_start(self) -> None:
-        self.model_evaluator.reset()
+    # def on_validation_start(self) -> None:
+    #     self.model_evaluator.reset()
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
@@ -113,8 +113,8 @@ class FuXi(L.LightningModule):
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
-        if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
-            self.model_evaluator.update(returns["output"], batch[:, 2:], batch_index)
+        # if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
+        #     self.model_evaluator.update(returns["output"], batch[:, 2:], batch_index)
 
         if self.clima_mean is not None:
             acc = weighted_acc(
@@ -129,11 +129,11 @@ class FuXi(L.LightningModule):
         self.log("val_mae", mae, sync_dist=True)
         self.log("val_rmse", rmse, sync_dist=True)
 
-    def on_validation_end(self) -> None:
-        if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
-            image_dict = self.model_evaluator.evaluate()
-            log_eval_dict(image_dict, "val")
-            self.model_evaluator.reset()
+    # def on_validation_end(self) -> None:
+    #     if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
+    #         image_dict = self.model_evaluator.evaluate()
+    #         log_eval_dict(image_dict, "val")
+    #         self.model_evaluator.reset()
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

@@ -108,7 +108,7 @@ def train():
 
         trainer = L.Trainer(
             accelerator="auto",
-            precision="16-mixed",
+            # precision="16-mixed",
             strategy=strategy,
             devices=-1,
             num_nodes=num_nodes,

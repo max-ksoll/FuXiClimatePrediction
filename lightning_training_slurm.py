@@ -39,7 +39,7 @@ def get_autoregression_step_epochs():
 
 
 def get_model_parameter():
-    return {"channels": 1024, "transformer_blocks": 40, "transformer_heads": 8}
+    return {"channels": 2048, "transformer_blocks": 20, "transformer_heads": 16}
 
 
 def get_opt_config():

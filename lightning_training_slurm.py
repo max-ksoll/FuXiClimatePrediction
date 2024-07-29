@@ -27,18 +27,19 @@ def get_config():
 
 def get_autoregression_step_epochs():
     return {
-        "25": 2,
-        "50": 4,
-        "75": 6,
-        "100": 8,
-        "125": 10,
-        "150": 12,
+        "25": 1,
+        "50": 2,
+        "75": 4,
+        "100": 6,
+        "125": 8,
+        "150": 10,
+        "175": 12,
         "-1": 24,
     }
 
 
 def get_model_parameter():
-    return {"channels": 2048, "transformer_blocks": 40, "transformer_heads": 8}
+    return {"channels": 1024, "transformer_blocks": 40, "transformer_heads": 8}
 
 
 def get_opt_config():

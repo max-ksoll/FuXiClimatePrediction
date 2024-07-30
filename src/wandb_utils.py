@@ -25,6 +25,7 @@ def log_eval_dict(model_eval, ds_type):
         # f"{ds_type}_val_loss": model_eval.get("val_loss", 0),
         f"img": {},
     }
+    print(model_eval)
     for eval_type in ["average_difference_over_time", "model_out_minus_clim"]:
         log_data[f"img"][eval_type] = {}
         for var, paths in model_eval[f"img"][eval_type].items():

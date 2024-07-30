@@ -11,11 +11,13 @@ import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.PyModel.fuxi_ligthning import FuXi
 from src.utils import get_clima_mean
+import cartopy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 torch.set_float32_matmul_precision("medium")
+cartopy.config['pre_existing_data_dir'] = os.environ["CARTOPY_DIR"]
 
 
 def get_config():

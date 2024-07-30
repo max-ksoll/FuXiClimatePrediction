@@ -105,7 +105,7 @@ class ModelEvaluator:
             )
             image_dict_avg_diff[var_name] = paths
             path, var_name = self.plot_model_minus_clim(model_minus_clim, var_idx)
-            image_dict_minus_clim[var_name] = path
+            image_dict_minus_clim[var_name] = [path]
 
         return_dict["img"] = {}
         return_dict["img"]["average_difference_over_time"] = image_dict_avg_diff

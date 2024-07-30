@@ -23,13 +23,11 @@ def log_eval_dict(model_eval, ds_type):
         # f"{ds_type}_mae": model_eval.get("mae", 0),
         # f"{ds_type}_rmse": model_eval.get("rmse", 0),
         # f"{ds_type}_val_loss": model_eval.get("val_loss", 0),
-        f"{ds_type}_img": {},
+        f"img": {},
     }
     for eval_type in ["average_difference_over_time", "model_out_minus_clim"]:
-        log_data[f"{ds_type}_img"][eval_type] = {}
-        for var, paths in model_eval[f"{ds_type}_img"][eval_type].items():
-            log_data[f"{ds_type}_img"][eval_type][var] = [
-                wandb.Image(path) for path in paths
-            ]
+        log_data[f"img"][eval_type] = {}
+        for var, paths in model_eval[f"img"][eval_type].items():
+            log_data[f"img"][eval_type][var] = [wandb.Image(path) for path in paths]
 
     wandb.log(log_data)

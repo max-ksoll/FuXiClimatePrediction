@@ -77,6 +77,8 @@ class ModelEvaluator:
             diff_tensor_list.append(model_outs - timeseries)
             model_out_minus_clim.append(model_outs - self.clima_mean)
 
+        del model_preds, gt
+
         return_dict = dict()
 
         diff_tensor = torch.cat(diff_tensor_list)
@@ -113,7 +115,7 @@ class ModelEvaluator:
         var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
 
         if var_level >= 0:
-            var_name += f" {var_level}"
+            var_name += f"{var_level}"
 
         paths = []
 

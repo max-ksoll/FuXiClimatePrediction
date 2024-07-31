@@ -13,7 +13,8 @@ from src.global_vars import OPTIMIZER_REQUIRED_KEYS
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
 from src.utils import get_latitude_weights
 from src.wandb_utils import log_eval_dict
-from mem_top import mem_top
+
+# from mem_top import mem_top
 
 logger = logging.getLogger(__name__)
 
@@ -109,11 +110,12 @@ class FuXi(L.LightningModule):
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
-        returns = self.model.step(
-            batch,
-            self.lat_weights,
-            autoregression_steps=self.autoregression_steps,
-        )
+        with torch.no_grad():
+            returns = self.model.step(
+                batch,
+                self.lat_weights,
+                autoregression_steps=self.autoregression_steps,
+            )
         if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
             self.model_evaluator.update(returns["output"], batch[:, 2:], batch_index)
 
@@ -135,7 +137,7 @@ class FuXi(L.LightningModule):
             image_dict = self.model_evaluator.evaluate()
             log_eval_dict(image_dict, "val")
             self.model_evaluator.reset()
-        logging.debug(mem_top())
+        # logging.info(mem_top())
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

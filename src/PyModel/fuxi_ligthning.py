@@ -13,6 +13,7 @@ from src.global_vars import OPTIMIZER_REQUIRED_KEYS
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
 from src.utils import get_latitude_weights
 from src.wandb_utils import log_eval_dict
+from mem_top import mem_top
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,7 @@ class FuXi(L.LightningModule):
             image_dict = self.model_evaluator.evaluate()
             log_eval_dict(image_dict, "val")
             self.model_evaluator.reset()
+        logging.debug(mem_top())
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

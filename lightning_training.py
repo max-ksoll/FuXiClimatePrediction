@@ -12,6 +12,7 @@ import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
 from src.PyModel.fuxi_ligthning import FuXi
 from src.sweep_config import getSweepID
+from src.utils import get_clima_mean
 from src.wandb_utils import get_optimizer_config, get_model_parameter
 
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +27,7 @@ if torch.backends.mps.is_available():
     device = "cpu"
 
 
-def init_model(run):
+def init_model(run, data_dir, start_year, end_year):
     config = run.config
 
     logger.info("Creating Model")
@@ -37,14 +38,19 @@ def init_model(run):
     transformer_heads = model_parameter["model_parameter_heads"]
     optimizer_config = get_optimizer_config()
     raw_fc = os.environ.get("RAW_FC_LAYER", "false").lower() == "true"
+    clim = get_clima_mean(
+        dataset_path=os.path.join(data_dir, f"{start_year}_{end_year}.zarr"),
+        means_file=os.path.join(data_dir, f"mean_{start_year}_{end_year}.zarr"),
+    )
     model = FuXi(
         35,
         channels,
         transformer_blocks,
         transformer_heads,
-        config.get("autoregression_steps_epochs"),
+        autoregression_config=config.get("autoregression_steps_epochs"),
         optimizer_config=optimizer_config,
         fig_path=os.environ.get("FIG_PATH"),
+        clima_mean=clim,
         raw_fc_layer=raw_fc,
     )
     return model
@@ -53,7 +59,10 @@ def init_model(run):
 def train():
     with wandb.init() as run:
         config = run.config
-        model = init_model(run)
+        data_dir = os.environ.get("DATA_PATH", False)
+        if not data_dir:
+            raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
+        model = init_model(run, data_dir, 1958, 1960)
 
         wandb_logger = WandbLogger(id=run.id, resume="allow")
         wandb_logger.watch(model, log_freq=100)
@@ -84,21 +93,17 @@ def train():
             max_epochs=config.get("max_epochs", None),
         )
 
-        data_dir = os.environ.get("DATA_PATH", False)
-        if not data_dir:
-            raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
-
         skip_data_prep = (
             os.environ.get("SKIP_DATA_PREPARATION", "false").lower() == "true"
         )
         dm = FuXiDataModule(
             data_dir=data_dir,
             start_year=1958,
-            end_year=2005,
-            val_start_year=2006,
-            val_end_year=2014,
-            test_start_year=2006,
-            test_end_year=2014,
+            end_year=1959,
+            val_start_year=1960,
+            val_end_year=1960,
+            test_start_year=1960,
+            test_end_year=1960,
             config=config,
             skip_data_preparing=skip_data_prep,
         )

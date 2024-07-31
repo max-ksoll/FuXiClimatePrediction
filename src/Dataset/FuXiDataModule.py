@@ -55,7 +55,7 @@ class FuXiDataModule(L.LightningDataModule):
         assert config or autoregression_step_epochs
         if config:
             self.batch_size = config.get("batch_size", 1)
-            self.autoregression_steps_epoch = config.get("autoregression_steps_epoch")
+            self.autoregression_steps_epoch = config.get("autoregression_steps_epochs")
         else:
             self.batch_size = batch_size
             self.autoregression_steps_epoch = autoregression_step_epochs

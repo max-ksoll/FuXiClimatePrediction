@@ -66,9 +66,6 @@ class ModelEvaluator:
 
         diff_tensor_list = []
         model_out_minus_clim = []
-        # accs = []
-        # maes = []
-        # rmses = []
 
         for idx in range(model_preds.shape[0]):
             timeseries = gt[idx]

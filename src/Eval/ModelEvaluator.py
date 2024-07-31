@@ -33,14 +33,10 @@ class ModelEvaluator:
             6,
             9,
         ]
-        self.model_outs = {}
-        self.gt = {}
+        self.model_outs = []
+        self.gt = []
 
     def reset(self):
-        for tensor in self.model_outs.values():
-            del tensor
-        for tensor in self.gt.values():
-            del tensor
         self.model_outs.clear()
         self.gt.clear()
 
@@ -55,35 +51,34 @@ class ModelEvaluator:
         Returns:
 
         """
-        self.model_outs[batch_idx] = outs.clone().detach().cpu()
-        self.gt[batch_idx] = gt.clone().detach().cpu()
+        self.model_outs.append(outs.clone().detach().cpu())
+        self.gt.append(gt.clone().detach().cpu())
 
     @torch.no_grad()
     def evaluate(self):
-        model_preds = torch.stack(
-            [self.model_outs[key] for key in sorted(self.model_outs.keys())]
-        )
-
-        gt = torch.stack([self.gt[key] for key in sorted(self.model_outs.keys())])
-
-        assert model_preds.shape == gt.shape
+        # model_preds = torch.stack(
+        #     [self.model_outs[key] for key in sorted(self.model_outs.keys())]
+        # )
+        #
+        # gt = torch.stack([self.gt[key] for key in sorted(self.model_outs.keys())])
+        #
+        # assert model_preds.shape == gt.shape
 
         diff_tensor_list = []
         model_out_minus_clim = []
 
-        for idx in range(model_preds.shape[0]):
-            timeseries = gt[idx]
-            model_outs = model_preds[idx]
+        for idx in range(len(self.model_outs)):
+            timeseries = self.gt[idx]
+            model_outs = self.model_outs[idx]
 
             diff_tensor_list.append(model_outs - timeseries)
             model_out_minus_clim.append(model_outs - self.clima_mean)
-
-        del model_preds, gt
 
         return_dict = dict()
 
         diff_tensor = torch.cat(diff_tensor_list)
         diff_tensor = diff_tensor.nanmean(dim=0)
+        diff_tensor[:, :, -2:2, :] = 0
         diff_tensor_list.clear()
 
         model_minus_clim = torch.cat(model_out_minus_clim)
@@ -111,8 +106,7 @@ class ModelEvaluator:
         self, difference, variable_idx
     ) -> Tuple[List[str | os.PathLike], str]:
         # AUTOREGRESSION X VARIABLES X LATITUDE X LONGITUDE
-        difference[:, :, -2:2, :] = 0
-        difference = difference[:, variable_idx, :, :]
+        diff = difference[:, variable_idx, :, :]
         var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
 
         if var_level >= 0:
@@ -121,10 +115,10 @@ class ModelEvaluator:
         paths = []
 
         for auto_step_to_plot in self.autoregression_steps_plots:
-            if difference.shape[0] <= auto_step_to_plot:
+            if diff.shape[0] <= auto_step_to_plot:
                 return paths, var_name
 
-            data = difference[auto_step_to_plot]
+            data = diff[auto_step_to_plot]
             paths.append(
                 self._plot_average_difference_over_time(
                     data, var_name, auto_step_to_plot
@@ -145,10 +139,6 @@ class ModelEvaluator:
         )
         plt.colorbar(im, ax=ax, orientation="vertical")
 
-        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
-        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
-        #     f"bias [{get_units(variable)}]"
-        # )
         ax.set_title(f"{var_name} {auto_step_to_plot+1}m into future")
         save_path = os.path.join(
             self.fig_path,
@@ -168,7 +158,7 @@ class ModelEvaluator:
         var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
 
         if var_level >= 0:
-            var_name += f" {var_level}"
+            var_name += f"{var_level}"
 
         fig, ax = plt.subplots(
             figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
@@ -181,11 +171,6 @@ class ModelEvaluator:
             lons, lats, difference, transform=ccrs.PlateCarree(), shading="auto"
         )
         plt.colorbar(im, ax=ax, orientation="vertical")
-
-        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
-        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
-        #     f"bias [{get_units(variable)}]"
-        # )
         ax.set_title(f"{var_name} difference to clim")
         save_path = os.path.join(
             self.fig_path,
@@ -196,26 +181,3 @@ class ModelEvaluator:
         plt.close("all")
 
         return save_path, var_name
-
-
-# if __name__ == "__main__":
-#     from src.utils import get_latitude_weights
-#     from src.Dataset.dimensions import LAT, LON
-#     import logging
-#
-#     logging.basicConfig(level=logging.INFO)
-#
-#     BS = 3
-#     AR = 4
-#
-#     eval = ModelEvaluator(
-#         clima_mean=torch.rand((35, 121, 240)),
-#         lat_weights=get_latitude_weights(LAT),
-#         fig_path="/Users/ksoll/git/FuXiClimatePrediction/data-viz",
-#     )
-#     eval.reset()
-#     for idx, elem in enumerate(range(21)):
-#         gt = torch.rand((BS, AR, 35, 121, 240))
-#         model_out = gt + torch.rand_like(gt)
-#         eval.update(model_out, gt, idx)
-#     print(eval.evaluate())

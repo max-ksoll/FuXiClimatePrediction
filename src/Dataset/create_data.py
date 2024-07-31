@@ -1,5 +1,3 @@
-# TODO main.py -> download_data.py oder so umbenennen
-
 import logging
 import os
 import shutil
@@ -10,7 +8,6 @@ from typing import List
 import cdsapi
 import numpy as np
 import xarray as xr
-from tqdm import tqdm
 
 from src import utils
 from src.Dataset.dimensions import (
@@ -185,7 +182,7 @@ class DataDownloader:
                     "31",
                 ],
                 "time": ["00:00", "06:00", "12:00", "18:00"],
-                "grid": [1.5, 1.5],
+                "grid": [LAT_LON_GRID_SIZE[0], LAT_LON_GRID_SIZE[1]],
             },
             file_path,
         )

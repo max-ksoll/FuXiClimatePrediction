@@ -9,7 +9,6 @@ import zarr
 from torch.utils.data import Dataset
 
 from src.Dataset.dimensions import (
-    LAT,
     METRICS_ARRAY,
     SURFACE_VARIABLES,
     LEVEL_VARIABLES,
@@ -59,6 +58,9 @@ class FuXiDataset(Dataset):
             logger.debug(f"Possible Idxs: {self.idxs}")
         self.len = self.idxs.shape[0]
         logger.debug(f"Number of Examples in DS {self.len}")
+
+    def get_autoregression(self):
+        return self.max_autoregression_steps - 2
 
     def init_max_min(self):
         logger.debug("Loading Min Tensor")
@@ -145,37 +147,10 @@ class FuXiDataset(Dataset):
         )
 
     @lru_cache
-    def get_clima_mean(self) -> torch.Tensor:
-        return self.normalize(
-            torch.cat(
-                [
-                    torch.mean(
-                        torch.stack(
-                            [
-                                torch.tensor(np.array(self.sources[var.name]))
-                                for var in SURFACE_VARIABLES
-                            ],
-                            0,
-                        ),
-                        dim=1,
-                    ),
-                    torch.mean(
-                        torch.stack(
-                            [
-                                torch.tensor(np.array(self.sources[var.name]))
-                                for var in LEVEL_VARIABLES
-                            ],
-                            0,
-                        ),
-                        dim=1,
-                    ).flatten(start_dim=0, end_dim=1),
-                ],
-                dim=0,
-            )
-        )
-
     def normalize(self, inp) -> torch.Tensor:
         logger.debug(f"Normalizing Data")
+        # TODO Normalisierung sollte vielleicht lieber zwischen -1 und 1 sein
+        # TODO Normalisierung sollte wahrscheinlich immer über den selben means file sein
         return (inp - self.min) / self.max_minus_min
 
 

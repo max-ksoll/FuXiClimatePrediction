@@ -5,8 +5,8 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
+from src.Dataset.dimensions import LAT, LON
 from src.Dataset.fuxi_dataset import FuXiDataset
-from src.Eval.scores import weighted_rmse, weighted_acc, weighted_mae
 from src.utils import log_exec_time
 
 import cartopy.crs as ccrs
@@ -17,12 +17,10 @@ class ModelEvaluator:
         self,
         clima_mean: torch.Tensor,
         lat_weights: torch.Tensor,
-        dataloader: torch.utils.data.DataLoader,
         fig_path: str | os.PathLike,
     ):
         self.clima_mean = clima_mean.detach().cpu()
         self.lat_weights = lat_weights.detach().cpu()
-        self.dataloader = dataloader
         self.fig_path = fig_path
         # In month 1, 3, 5, ...
         # Es werden nur Grafiken erstellt für die Vorhandenen Schritte
@@ -36,17 +34,17 @@ class ModelEvaluator:
             9,
         ]
         self.model_outs = {}
+        self.gt = {}
 
     def reset(self):
         self.model_outs.clear()
+        self.gt.clear()
 
-    def set_dataloader(self, dataloader):
-        self.dataloader = dataloader
-
-    def update(self, outs: torch.Tensor, batch_idx: int):
+    def update(self, outs: torch.Tensor, gt: torch.Tensor, batch_idx: int):
         """
 
         Args:
+            gt: Groundtruth
             outs: Tensor of Shape Batch Size x Autoregression x Variables x Latitude x Longitude
             batch_idx: Idx of the Batch, because of possible DDP
 
@@ -54,32 +52,42 @@ class ModelEvaluator:
 
         """
         self.model_outs[batch_idx] = outs.detach().cpu()
+        self.gt[batch_idx] = gt.detach().cpu()
 
     def evaluate(self):
         model_preds = torch.stack(
             [self.model_outs[key] for key in sorted(self.model_outs.keys())]
         )
+
+        gt = torch.stack([self.gt[key] for key in sorted(self.model_outs.keys())])
+
+        assert model_preds.shape == gt.shape
+
         diff_tensor_list = []
         model_out_minus_clim = []
-        accs = []
-        maes = []
-        rmses = []
-        for idx, batch in enumerate(self.dataloader):
-            batch = batch[:, 2:]
+        # accs = []
+        # maes = []
+        # rmses = []
+
+        for idx in range(model_preds.shape[0]):
+            timeseries = gt[idx]
             model_outs = model_preds[idx]
-            accs.append(
-                weighted_acc(model_outs, batch, self.lat_weights, self.clima_mean)
-            )
-            maes.append(weighted_mae(model_outs, batch, self.lat_weights))
-            rmses.append(weighted_rmse(model_outs, batch, self.lat_weights))
-            diff_tensor_list.append(model_outs - batch)
+
+            # accs.append(
+            #     weighted_acc(model_outs, timeseries, self.lat_weights, self.clima_mean)
+            # )
+            # maes.append(weighted_mae(model_outs, timeseries, self.lat_weights))
+            # rmses.append(weighted_rmse(model_outs, timeseries, self.lat_weights))
+            #
+            diff_tensor_list.append(model_outs - timeseries)
             model_out_minus_clim.append(model_outs - self.clima_mean)
 
-        return_dict = {
-            "acc": np.mean(accs),
-            "mae": np.mean(maes),
-            "rmse": np.mean(rmses),
-        }
+        # return_dict = {
+        #     "acc": np.mean(accs),
+        #     "mae": np.mean(maes),
+        #     "rmse": np.mean(rmses),
+        # }
+        return_dict = dict()
 
         diff_tensor = torch.cat(diff_tensor_list)
         diff_tensor = diff_tensor.nanmean(dim=0)
@@ -98,7 +106,7 @@ class ModelEvaluator:
             )
             image_dict_avg_diff[var_name] = paths
             path, var_name = self.plot_model_minus_clim(model_minus_clim, var_idx)
-            image_dict_minus_clim[var_name] = path
+            image_dict_minus_clim[var_name] = [path]
 
         return_dict["img"] = {}
         return_dict["img"]["average_difference_over_time"] = image_dict_avg_diff
@@ -215,60 +223,25 @@ class ModelEvaluator:
 
         return save_path, var_name
 
-    @log_exec_time
-    def _plot_model_minus_clim(self, data, var_name):
-        fig, ax = plt.subplots(
-            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
-        )
-        ax.coastlines()
 
-        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
-        lons = np.linspace(-180, 180, LON.size)
-        im = ax.pcolormesh(
-            lons, lats, data, transform=ccrs.PlateCarree(), shading="auto"
-        )
-        plt.colorbar(im, ax=ax, orientation="vertical")
-
-        # Daten plotten. ,vmin=-getExtrem(variable), vmax=getExtrem(variable)
-        # plt.colorbar(im, ax=ax, orientation="horizontal", shrink=0.5).set_label(
-        #     f"bias [{get_units(variable)}]"
-        # )
-        ax.set_title(f"{var_name} difference to clim")
-        save_path = os.path.join(
-            self.fig_path,
-            f"diff-clim_{var_name}_{auto_step_to_plot+1}m_into_future.png",
-        )
-
-        plt.savefig(save_path)
-        plt.close()
-
-        return save_path
-
-
-if __name__ == "__main__":
-    from src.utils import get_dataloader_params, get_latitude_weights
-    from torch.utils.data import DataLoader
-    from src.Dataset.dimensions import LAT, LON
-    import logging
-
-    logging.basicConfig(level=logging.INFO)
-
-    BS = 3
-    AR = 4
-
-    ds = FuXiDataset(
-        dataset_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1959.zarr",
-        means_file="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1959.zarr",
-        max_autoregression_steps=AR,
-    )
-    dl = DataLoader(ds, **get_dataloader_params(BS))
-    eval = ModelEvaluator(
-        clima_mean=torch.rand((35, 121, 240)),
-        lat_weights=get_latitude_weights(LAT),
-        dataloader=dl,
-        fig_path="/Users/ksoll/git/FuXiClimatePrediction/data-viz",
-    )
-    eval.reset()
-    for idx, elem in enumerate(dl):
-        eval.update(torch.rand((BS, AR, 35, 121, 240)), idx)
-    print(eval.evaluate())
+# if __name__ == "__main__":
+#     from src.utils import get_latitude_weights
+#     from src.Dataset.dimensions import LAT, LON
+#     import logging
+#
+#     logging.basicConfig(level=logging.INFO)
+#
+#     BS = 3
+#     AR = 4
+#
+#     eval = ModelEvaluator(
+#         clima_mean=torch.rand((35, 121, 240)),
+#         lat_weights=get_latitude_weights(LAT),
+#         fig_path="/Users/ksoll/git/FuXiClimatePrediction/data-viz",
+#     )
+#     eval.reset()
+#     for idx, elem in enumerate(range(21)):
+#         gt = torch.rand((BS, AR, 35, 121, 240))
+#         model_out = gt + torch.rand_like(gt)
+#         eval.update(model_out, gt, idx)
+#     print(eval.evaluate())

@@ -6,7 +6,10 @@ import wandb
 def get_sweep():
     executionTime = datetime.now().strftime("%d/%m/%Y, %H:%M")
     name = str("1st_test " + executionTime)
-    sweep_config = {"method": "grid", "name": name}
+    sweep_config = {
+        "method": "grid",
+        "name": name,
+    }
     # metric = {"name": "mse", "goal": "minimize"}
     # sweep_config["metric"] = metric
     return sweep_config
@@ -21,8 +24,6 @@ def get_parameters_dict():
         "optimizer_config_T_0": {"value": 2},
         "optimizer_config_eta_min": {"value": 1e-7},
         "optimizer_config_T_mult": {"value": 2},
-        "devices": {"value": 1},
-        "num_nodes": {"value": 1},
         "model_parameter_channel": {"value": 2},
         "model_parameter_transformer_blocks": {"value": 2},
         "model_parameter_heads": {"value": 2},

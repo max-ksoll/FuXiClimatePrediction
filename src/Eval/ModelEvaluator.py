@@ -19,8 +19,8 @@ class ModelEvaluator:
         lat_weights: torch.Tensor,
         fig_path: str | os.PathLike,
     ):
-        self.clima_mean = clima_mean.detach().cpu()
-        self.lat_weights = lat_weights.detach().cpu()
+        self.clima_mean = clima_mean.clone().detach().cpu()
+        self.lat_weights = lat_weights.clone().detach().cpu()
         self.fig_path = fig_path
         # In month 1, 3, 5, ...
         # Es werden nur Grafiken erstellt für die Vorhandenen Schritte
@@ -51,9 +51,10 @@ class ModelEvaluator:
         Returns:
 
         """
-        self.model_outs[batch_idx] = outs.detach().cpu()
-        self.gt[batch_idx] = gt.detach().cpu()
+        self.model_outs[batch_idx] = outs.clone().detach().cpu()
+        self.gt[batch_idx] = gt.clone().detach().cpu()
 
+    @torch.no_grad()
     def evaluate(self):
         model_preds = torch.stack(
             [self.model_outs[key] for key in sorted(self.model_outs.keys())]
@@ -73,20 +74,9 @@ class ModelEvaluator:
             timeseries = gt[idx]
             model_outs = model_preds[idx]
 
-            # accs.append(
-            #     weighted_acc(model_outs, timeseries, self.lat_weights, self.clima_mean)
-            # )
-            # maes.append(weighted_mae(model_outs, timeseries, self.lat_weights))
-            # rmses.append(weighted_rmse(model_outs, timeseries, self.lat_weights))
-            #
             diff_tensor_list.append(model_outs - timeseries)
             model_out_minus_clim.append(model_outs - self.clima_mean)
 
-        # return_dict = {
-        #     "acc": np.mean(accs),
-        #     "mae": np.mean(maes),
-        #     "rmse": np.mean(rmses),
-        # }
         return_dict = dict()
 
         diff_tensor = torch.cat(diff_tensor_list)
@@ -113,25 +103,6 @@ class ModelEvaluator:
         return_dict["img"]["model_out_minus_clim"] = image_dict_minus_clim
 
         return return_dict
-        # return {
-        #     "acc": 0,
-        #     "mae": 0,
-        #     "rmse": 0,
-        #     "img": {
-        #         "average_difference_over_time": {
-        #             "specific_humidity": ["fig_path"],
-        #             "temperature": ["fig_path"],
-        #             "u_component_of_wind": ["fig_path"],
-        #             "v_component_of_wind": ["fig_path"],
-        #         },
-        #         "model_out_minus_clim": {
-        #             "specific_humidity": ["fig_path"],
-        #             "temperature": ["fig_path"],
-        #             "u_component_of_wind": ["fig_path"],
-        #             "v_component_of_wind": ["fig_path"],
-        #         },
-        #     },
-        # }
 
     def plot_average_difference_over_time(
         self, difference, variable_idx
@@ -182,7 +153,7 @@ class ModelEvaluator:
         )
 
         plt.savefig(save_path)
-        plt.close()
+        plt.close("all")
 
         return save_path
 
@@ -219,7 +190,7 @@ class ModelEvaluator:
         )
 
         plt.savefig(save_path)
-        plt.close()
+        plt.close("all")
 
         return save_path, var_name
 

@@ -38,6 +38,7 @@ class ModelEvaluator:
 
     def reset(self):
         self.model_outs.clear()
+        self.gt.clear()
 
     def update(self, outs: torch.Tensor, gt: torch.Tensor, batch_idx: int):
         """

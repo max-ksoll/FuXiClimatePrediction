@@ -37,6 +37,10 @@ class ModelEvaluator:
         self.gt = {}
 
     def reset(self):
+        for tensor in self.model_outs.values():
+            del tensor
+        for tensor in self.gt.values():
+            del tensor
         self.model_outs.clear()
         self.gt.clear()
 

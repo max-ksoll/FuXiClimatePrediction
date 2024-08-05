@@ -139,6 +139,11 @@ class FuXi(L.LightningModule):
         self.log("val_rmse", rmse, sync_dist=True)
 
     def on_validation_end(self) -> None:
+        if len(self.val_diff_to_gt) == 0 or len(self.val_diff_to_clim) == 0:
+            logger.warning("Skipping val_end because of an empty list - clearing...")
+            self.val_diff_to_gt.clear()
+            self.val_diff_to_clim.clear()
+
         diff_tensor = torch.cat(self.val_diff_to_gt, dim=0)
         diff_tensor = diff_tensor.nanmean(dim=0)
         diff_tensor[:, :, -2:2, :] = 0

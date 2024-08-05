@@ -21,7 +21,7 @@ def plot_average_difference_over_time(
     var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
 
     if var_level >= 0:
-        var_name += f"{var_level}"
+        var_name += f"_{var_level}"
 
     paths = []
 

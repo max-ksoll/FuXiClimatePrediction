@@ -153,46 +153,21 @@ class FuXi(L.LightningModule):
         model_minus_clim = torch.cat(self.val_diff_to_clim, dim=0)
         model_minus_clim = model_minus_clim.nanmean(dim=[0, 1])
 
-        image_dict_avg_diff = {}
-        image_dict_minus_clim = {}
         for var_idx in range(35):
             paths, var_name = plot_average_difference_over_time(
                 self.fig_path, diff_tensor, var_idx, self.autoregression_steps_plots
             )
-            image_dict_avg_diff[var_name] = paths
+            self.logger.log_image(
+                f"val_img.average_difference_over_time.{var_name}", images=paths
+            )
+
             path, var_name = plot_model_minus_clim(
                 self.fig_path, model_minus_clim, var_idx
             )
-            image_dict_minus_clim[var_name] = [path]
-
-        model_eval = {
-            "img": {
-                "average_difference_over_time": image_dict_avg_diff,
-                "model_out_minus_clim": image_dict_minus_clim,
-            }
-        }
-
-        # log_eval_dict(
-        #     {
-        #         "img": {
-        #             "average_difference_over_time": image_dict_avg_diff,
-        #             "model_out_minus_clim": image_dict_minus_clim,
-        #         }
-        #     },
-        #     "val",
-        # )
-        log_data = {
-            "val_img": {},
-        }
-        for eval_type in ["average_difference_over_time", "model_out_minus_clim"]:
-            log_data["val_img"][eval_type] = {}
-            for var, paths in model_eval[f"img"][eval_type].items():
-                self.log(
-                    f"val_img.{eval_type}.{var}", [wandb.Image(path) for path in paths]
-                )
-                # log_data[f"val_img"][eval_type][var] = [
-                #     wandb.Image(path) for path in paths
-                # ]
+            self.logger.log_image(
+                f"val_img.model_out_minus_clim.{var_name}", images=paths
+            )
+        del diff_tensor, model_minus_clim
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

@@ -123,7 +123,7 @@ class FuXi(L.LightningModule):
             )
 
         self.val_diff_to_gt.append((returns["output"] - batch[:, 2:]).cpu())
-        self.val_diff_to_gt.append((returns["output"] - self.clima_mean).cpu())
+        self.val_diff_to_clim.append((returns["output"] - self.clima_mean).cpu())
 
         if self.clima_mean is not None:
             acc = weighted_acc(

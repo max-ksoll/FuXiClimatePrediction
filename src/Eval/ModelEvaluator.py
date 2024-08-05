@@ -56,14 +56,6 @@ class ModelEvaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        # model_preds = torch.stack(
-        #     [self.model_outs[key] for key in sorted(self.model_outs.keys())]
-        # )
-        #
-        # gt = torch.stack([self.gt[key] for key in sorted(self.model_outs.keys())])
-        #
-        # assert model_preds.shape == gt.shape
-
         diff_tensor_list = []
         model_out_minus_clim = []
 

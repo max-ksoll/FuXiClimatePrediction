@@ -7,6 +7,7 @@ from typing_extensions import Self
 
 from src.Dataset.dimensions import LAT, LON
 from src.Eval.ModelEvaluator import ModelEvaluator
+from src.Eval.plots import plot_average_difference_over_time, plot_model_minus_clim
 from src.Eval.scores import weighted_acc, weighted_mae, weighted_rmse
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS
@@ -29,7 +30,6 @@ class FuXi(L.LightningModule):
         fig_path: str,
         clima_mean: torch.Tensor,
         raw_fc_layer: bool = False,
-        log_evaluator_img_every_n_epochs: int = 1,
     ):
         super().__init__()
         self.model: FuXiBase = FuXiBase(
@@ -41,8 +41,6 @@ class FuXi(L.LightningModule):
             heads=transformer_heads,
             raw_fc_layer=raw_fc_layer,
         )
-        self.valModelEvaluator = None
-        self.testModelEvaluator = None
         self.autoregression_steps = config_epoch_to_autoregression_steps(
             autoregression_config, 0
         )
@@ -59,8 +57,16 @@ class FuXi(L.LightningModule):
         )
         self.fig_path = fig_path
         self.clima_mean = clima_mean
-        self.model_evaluator = ModelEvaluator(clima_mean, self.lat_weights, fig_path)
-        self.log_evaluator_img_every_n_epochs = log_evaluator_img_every_n_epochs
+
+        self.val_diff_to_gt = []
+        self.val_diff_to_clim = []
+        self.autoregression_steps_plots = [
+            0,
+            2,
+            4,
+            6,
+            9,
+        ]
 
     def on_train_epoch_start(self) -> None:
         old_auto_steps = self.autoregression_steps
@@ -104,7 +110,8 @@ class FuXi(L.LightningModule):
         return loss
 
     def on_validation_start(self) -> None:
-        self.model_evaluator.reset()
+        self.val_diff_to_gt.clear()
+        self.val_diff_to_clim.clear()
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
@@ -114,8 +121,9 @@ class FuXi(L.LightningModule):
                 self.lat_weights,
                 autoregression_steps=self.autoregression_steps,
             )
-        if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
-            self.model_evaluator.update(returns["output"], batch[:, 2:], batch_index)
+
+        self.val_diff_to_gt.append((returns["output"] - batch[:, 2:]).cpu())
+        self.val_diff_to_gt.append((returns["output"] - self.clima_mean).cpu())
 
         if self.clima_mean is not None:
             acc = weighted_acc(
@@ -131,9 +139,34 @@ class FuXi(L.LightningModule):
         self.log("val_rmse", rmse, sync_dist=True)
 
     def on_validation_end(self) -> None:
-        if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
-            image_dict = self.model_evaluator.evaluate()
-            log_eval_dict(image_dict, "val")
+        diff_tensor = torch.cat(self.val_diff_to_gt, dim=0)
+        diff_tensor = diff_tensor.nanmean(dim=0)
+        diff_tensor[:, :, -2:2, :] = 0
+
+        model_minus_clim = torch.cat(self.val_diff_to_clim, dim=0)
+        model_minus_clim = model_minus_clim.nanmean(dim=[0, 1])
+
+        image_dict_avg_diff = {}
+        image_dict_minus_clim = {}
+        for var_idx in range(35):
+            paths, var_name = plot_average_difference_over_time(
+                self.fig_path, diff_tensor, var_idx, self.autoregression_steps_plots
+            )
+            image_dict_avg_diff[var_name] = paths
+            path, var_name = plot_model_minus_clim(
+                self.fig_path, model_minus_clim, var_idx
+            )
+            image_dict_minus_clim[var_name] = [path]
+
+        log_eval_dict(
+            {
+                "img": {
+                    "average_difference_over_time": image_dict_avg_diff,
+                    "model_out_minus_clim": image_dict_minus_clim,
+                }
+            },
+            "val",
+        )
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

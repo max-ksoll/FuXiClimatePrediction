@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 import lightning as L
 import torch
+import wandb
 from typing_extensions import Self
 
 from src.Dataset.dimensions import LAT, LON
@@ -164,15 +165,34 @@ class FuXi(L.LightningModule):
             )
             image_dict_minus_clim[var_name] = [path]
 
-        log_eval_dict(
-            {
-                "img": {
-                    "average_difference_over_time": image_dict_avg_diff,
-                    "model_out_minus_clim": image_dict_minus_clim,
-                }
-            },
-            "val",
-        )
+        model_eval = {
+            "img": {
+                "average_difference_over_time": image_dict_avg_diff,
+                "model_out_minus_clim": image_dict_minus_clim,
+            }
+        }
+
+        # log_eval_dict(
+        #     {
+        #         "img": {
+        #             "average_difference_over_time": image_dict_avg_diff,
+        #             "model_out_minus_clim": image_dict_minus_clim,
+        #         }
+        #     },
+        #     "val",
+        # )
+        log_data = {
+            "val_img": {},
+        }
+        for eval_type in ["average_difference_over_time", "model_out_minus_clim"]:
+            log_data["val_img"][eval_type] = {}
+            for var, paths in model_eval[f"img"][eval_type].items():
+                self.log(
+                    f"val_img.{eval_type}.{var}", [wandb.Image(path) for path in paths]
+                )
+                # log_data[f"val_img"][eval_type][var] = [
+                #     wandb.Image(path) for path in paths
+                # ]
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

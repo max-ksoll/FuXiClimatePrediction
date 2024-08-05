@@ -143,6 +143,7 @@ class FuXi(L.LightningModule):
             logger.warning("Skipping val_end because of an empty list - clearing...")
             self.val_diff_to_gt.clear()
             self.val_diff_to_clim.clear()
+            return
 
         diff_tensor = torch.cat(self.val_diff_to_gt, dim=0)
         diff_tensor = diff_tensor.nanmean(dim=0)

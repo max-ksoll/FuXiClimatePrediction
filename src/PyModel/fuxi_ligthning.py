@@ -1,20 +1,18 @@
+import gc
 import logging
 from typing import Any, Dict
 
 import lightning as L
 import torch
-import wandb
 from typing_extensions import Self
 
 from src.Dataset.dimensions import LAT, LON
-from src.Eval.ModelEvaluator import ModelEvaluator
 from src.Eval.plots import plot_average_difference_over_time, plot_model_minus_clim
 from src.Eval.scores import weighted_acc, weighted_mae, weighted_rmse
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
 from src.utils import get_latitude_weights
-from src.wandb_utils import log_eval_dict
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +109,9 @@ class FuXi(L.LightningModule):
         return loss
 
     def on_validation_start(self) -> None:
-        self.val_diff_to_gt.clear()
-        self.val_diff_to_clim.clear()
+        if self.trainer.is_global_zero:
+            self.val_diff_to_gt.clear()
+            self.val_diff_to_clim.clear()
 
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
@@ -140,6 +139,8 @@ class FuXi(L.LightningModule):
         self.log("val_rmse", rmse, sync_dist=True)
 
     def on_validation_end(self) -> None:
+        if not self.trainer.is_global_zero:
+            return
         if len(self.val_diff_to_gt) == 0 or len(self.val_diff_to_clim) == 0:
             logger.warning("Skipping val_end because of an empty list - clearing...")
             self.val_diff_to_gt.clear()
@@ -168,6 +169,7 @@ class FuXi(L.LightningModule):
                 f"val_img.model_out_minus_clim.{var_name}", images=paths
             )
         del diff_tensor, model_minus_clim
+        gc.collect()
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

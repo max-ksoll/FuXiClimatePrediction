@@ -155,20 +155,20 @@ class FuXi(L.LightningModule):
             avg_images, var_name = plot_average_difference_over_time(
                 self.fig_path, diff_tensor, var_idx, self.autoregression_steps_plots
             )
-            self.logger.log_image(
-                f"val_img.average_difference_over_time.{var_name}",
-                images=avg_images,
-                step=self.trainer.global_step,
-            )
+            # self.logger.log_image(
+            #     f"val_img.average_difference_over_time.{var_name}",
+            #     images=avg_images,
+            #     step=self.trainer.global_step,
+            # )
 
             clim_images, var_name = plot_model_minus_clim(
                 self.fig_path, model_minus_clim, var_idx
             )
-            self.logger.log_image(
-                f"val_img.model_out_minus_clim.{var_name}",
-                images=[clim_images],
-                step=self.trainer.global_step,
-            )
+            # self.logger.log_image(
+            #     f"val_img.model_out_minus_clim.{var_name}",
+            #     images=[clim_images],
+            #     step=self.trainer.global_step,
+            # )
         del diff_tensor, model_minus_clim
         self.val_diff_to_gt.clear()
         self.val_diff_to_clim.clear()

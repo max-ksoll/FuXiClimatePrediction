@@ -135,7 +135,7 @@ class FuXi(L.LightningModule):
 
     @torch.no_grad()
     def on_validation_end(self) -> None:
-        if self.trainer.is_global_zero:
+        if not self.trainer.is_global_zero:
             return
 
         if len(self.val_diff_to_gt) == 0 or len(self.val_diff_to_clim) == 0:

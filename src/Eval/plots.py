@@ -15,7 +15,7 @@ def plot_average_difference_over_time(
     difference: torch.Tensor,
     variable_idx: int,
     autoregression_steps_plots: List[int],
-) -> Tuple[List[str | os.PathLike], str]:
+) -> Tuple[List[np.ndarray], str]:
     # AUTOREGRESSION X VARIABLES X LATITUDE X LONGITUDE
     diff = difference[:, variable_idx, :, :]
     var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
@@ -23,14 +23,14 @@ def plot_average_difference_over_time(
     if var_level >= 0:
         var_name += f"_{var_level}"
 
-    paths = []
+    images = []
 
     for auto_step_to_plot in autoregression_steps_plots:
         if diff.shape[0] <= auto_step_to_plot:
-            return paths, var_name
+            return images, var_name
 
         data = diff[auto_step_to_plot]
-        paths.append(
+        images.append(
             _plot_average_difference_over_time(
                 fig_base_path, data, var_name, auto_step_to_plot
             )
@@ -53,15 +53,15 @@ def _plot_average_difference_over_time(
     plt.colorbar(im, ax=ax, orientation="vertical")
 
     ax.set_title(f"{var_name} {auto_step_to_plot+1}m into future")
-    save_path = os.path.join(
-        fig_base_path,
-        f"avg-diff-time_{var_name}_{auto_step_to_plot+1}m_into_future.png",
-    )
+    fig.canvas.draw()
 
-    plt.savefig(save_path)
+    # Now we can save it to a numpy array.
+    data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
     plt.close("all")
 
-    return save_path
+    return data
 
 
 def plot_model_minus_clim(
@@ -84,12 +84,12 @@ def plot_model_minus_clim(
     )
     plt.colorbar(im, ax=ax, orientation="vertical")
     ax.set_title(f"{var_name} difference to clim")
-    save_path = os.path.join(
-        fig_base_path,
-        f"diff-clim_{var_name}.png",
-    )
+    fig.canvas.draw()
 
-    plt.savefig(save_path)
+    # Now we can save it to a numpy array.
+    data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
     plt.close("all")
 
-    return save_path, var_name
+    return data, var_name

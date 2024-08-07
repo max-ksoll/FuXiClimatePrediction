@@ -27,7 +27,7 @@ def plot_average_difference_over_time(
 
     for auto_step_to_plot in autoregression_steps_plots:
         if diff.shape[0] <= auto_step_to_plot:
-            return images, var_name
+            break
 
         data = diff[auto_step_to_plot]
         images.append(
@@ -35,6 +35,10 @@ def plot_average_difference_over_time(
                 fig_base_path, data, var_name, auto_step_to_plot
             )
         )
+
+    del data, diff
+
+    return images, var_name
 
 
 @log_exec_time
@@ -91,5 +95,6 @@ def plot_model_minus_clim(
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
     plt.close("all")
+    del difference
 
     return data, var_name

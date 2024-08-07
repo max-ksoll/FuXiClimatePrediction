@@ -108,11 +108,6 @@ class FuXi(L.LightningModule):
             self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
         return loss
 
-    def on_validation_start(self) -> None:
-        if self.trainer.is_global_zero:
-            self.val_diff_to_gt.clear()
-            self.val_diff_to_clim.clear()
-
     @log_exec_time
     def validation_step(self, batch, batch_index) -> None:
         with torch.no_grad():
@@ -159,16 +154,22 @@ class FuXi(L.LightningModule):
                 self.fig_path, diff_tensor, var_idx, self.autoregression_steps_plots
             )
             self.logger.log_image(
-                f"val_img.average_difference_over_time.{var_name}", images=paths
+                f"val_img.average_difference_over_time.{var_name}",
+                images=paths,
+                step=self.trainer.global_step,
             )
 
             path, var_name = plot_model_minus_clim(
                 self.fig_path, model_minus_clim, var_idx
             )
             self.logger.log_image(
-                f"val_img.model_out_minus_clim.{var_name}", images=paths
+                f"val_img.model_out_minus_clim.{var_name}",
+                images=paths,
+                step=self.trainer.global_step,
             )
         del diff_tensor, model_minus_clim
+        self.val_diff_to_gt.clear()
+        self.val_diff_to_clim.clear()
         gc.collect()
 
     @log_exec_time

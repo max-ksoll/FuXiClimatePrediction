@@ -64,6 +64,7 @@ def _plot_average_difference_over_time(
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
     plt.close("all")
+    del lats, lons, im, fig, ax
 
     return data
 
@@ -76,7 +77,7 @@ def plot_model_minus_clim(
     var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
 
     if var_level >= 0:
-        var_name += f"{var_level}"
+        var_name += f"_{var_level}"
 
     fig, ax = plt.subplots(figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()})
     ax.coastlines()
@@ -95,6 +96,6 @@ def plot_model_minus_clim(
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
     plt.close("all")
-    del difference
+    del difference, lats, lons, im, fig, ax
 
     return data, var_name

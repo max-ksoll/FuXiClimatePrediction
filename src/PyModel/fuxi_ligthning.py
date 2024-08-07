@@ -108,14 +108,13 @@ class FuXi(L.LightningModule):
             self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
         return loss
 
-    @log_exec_time
+    @torch.no_grad()
     def validation_step(self, batch, batch_index) -> None:
-        with torch.no_grad():
-            returns = self.model.step(
-                batch,
-                self.lat_weights,
-                autoregression_steps=self.autoregression_steps,
-            )
+        returns = self.model.step(
+            batch,
+            self.lat_weights,
+            autoregression_steps=self.autoregression_steps,
+        )
 
         self.val_diff_to_gt.append((returns["output"] - batch[:, 2:]).cpu())
         self.val_diff_to_clim.append((returns["output"] - self.clima_mean).cpu())
@@ -133,9 +132,11 @@ class FuXi(L.LightningModule):
         self.log("val_mae", mae, sync_dist=True)
         self.log("val_rmse", rmse, sync_dist=True)
 
+    @torch.no_grad()
     def on_validation_end(self) -> None:
-        if not self.trainer.is_global_zero:
+        if self.trainer.is_global_zero:
             return
+
         if len(self.val_diff_to_gt) == 0 or len(self.val_diff_to_clim) == 0:
             logger.warning("Skipping val_end because of an empty list - clearing...")
             self.val_diff_to_gt.clear()
@@ -153,20 +154,20 @@ class FuXi(L.LightningModule):
             paths, var_name = plot_average_difference_over_time(
                 self.fig_path, diff_tensor, var_idx, self.autoregression_steps_plots
             )
-            self.logger.log_image(
-                f"val_img.average_difference_over_time.{var_name}",
-                images=paths,
-                step=self.trainer.global_step,
-            )
+            # self.logger.log_image(
+            #     f"val_img.average_difference_over_time.{var_name}",
+            #     images=paths,
+            #     step=self.trainer.global_step,
+            # )
 
             path, var_name = plot_model_minus_clim(
                 self.fig_path, model_minus_clim, var_idx
             )
-            self.logger.log_image(
-                f"val_img.model_out_minus_clim.{var_name}",
-                images=paths,
-                step=self.trainer.global_step,
-            )
+            # self.logger.log_image(
+            #     f"val_img.model_out_minus_clim.{var_name}",
+            #     images=paths,
+            #     step=self.trainer.global_step,
+            # )
         del diff_tensor, model_minus_clim
         self.val_diff_to_gt.clear()
         self.val_diff_to_clim.clear()

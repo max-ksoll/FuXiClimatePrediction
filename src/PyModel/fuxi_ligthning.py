@@ -1,4 +1,6 @@
+import gc
 import logging
+import os
 from typing import Any, Dict
 
 import lightning as L
@@ -6,13 +8,11 @@ import torch
 from typing_extensions import Self
 
 from src.Dataset.dimensions import LAT, LON
-from src.Eval.ModelEvaluator import ModelEvaluator
 from src.Eval.scores import weighted_acc, weighted_mae, weighted_rmse
 from src.PyModel.fuxi import FuXi as FuXiBase
 from src.global_vars import OPTIMIZER_REQUIRED_KEYS
 from src.utils import config_epoch_to_autoregression_steps, log_exec_time
 from src.utils import get_latitude_weights
-from src.wandb_utils import log_eval_dict
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,9 @@ class FuXi(L.LightningModule):
         transformer_heads: int,
         autoregression_config: Dict[str, int],
         optimizer_config: Dict[str, Any],
-        fig_path: str,
+        tensor_path: str,
         clima_mean: torch.Tensor,
         raw_fc_layer: bool = False,
-        log_evaluator_img_every_n_epochs: int = 1,
     ):
         super().__init__()
         self.model: FuXiBase = FuXiBase(
@@ -41,8 +40,6 @@ class FuXi(L.LightningModule):
             heads=transformer_heads,
             raw_fc_layer=raw_fc_layer,
         )
-        self.valModelEvaluator = None
-        self.testModelEvaluator = None
         self.autoregression_steps = config_epoch_to_autoregression_steps(
             autoregression_config, 0
         )
@@ -57,10 +54,19 @@ class FuXi(L.LightningModule):
             "transformer_heads",
             "raw_fc_layer",
         )
-        self.fig_path = fig_path
+        self.tensor_path = tensor_path
+        os.makedirs(tensor_path, exist_ok=True)
         self.clima_mean = clima_mean
-        self.model_evaluator = ModelEvaluator(clima_mean, self.lat_weights, fig_path)
-        self.log_evaluator_img_every_n_epochs = log_evaluator_img_every_n_epochs
+
+        self.val_diff_to_gt = []
+        self.val_diff_to_clim = []
+        self.autoregression_steps_plots = [
+            0,
+            2,
+            4,
+            6,
+            9,
+        ]
 
     def on_train_epoch_start(self) -> None:
         old_auto_steps = self.autoregression_steps
@@ -103,18 +109,16 @@ class FuXi(L.LightningModule):
             self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"])
         return loss
 
-    def on_validation_start(self) -> None:
-        self.model_evaluator.reset()
-
-    @log_exec_time
+    @torch.no_grad()
     def validation_step(self, batch, batch_index) -> None:
         returns = self.model.step(
             batch,
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
         )
-        if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
-            self.model_evaluator.update(returns["output"], batch[:, 2:], batch_index)
+
+        self.val_diff_to_gt.append((returns["output"] - batch[:, 2:]).cpu())
+        self.val_diff_to_clim.append((returns["output"] - self.clima_mean).cpu())
 
         if self.clima_mean is not None:
             acc = weighted_acc(
@@ -129,11 +133,37 @@ class FuXi(L.LightningModule):
         self.log("val_mae", mae, sync_dist=True)
         self.log("val_rmse", rmse, sync_dist=True)
 
+    @torch.no_grad()
     def on_validation_end(self) -> None:
-        if not self.trainer.current_epoch % self.log_evaluator_img_every_n_epochs:
-            image_dict = self.model_evaluator.evaluate()
-            log_eval_dict(image_dict, "val")
-            self.model_evaluator.reset()
+        if not self.trainer.is_global_zero:
+            return
+
+        if len(self.val_diff_to_gt) == 0 or len(self.val_diff_to_clim) == 0:
+            logger.warning("Skipping val_end because of an empty list - clearing...")
+            self.val_diff_to_gt.clear()
+            self.val_diff_to_clim.clear()
+            return
+
+        epoch_path = os.path.join(self.tensor_path, str(self.current_epoch))
+        os.makedirs(epoch_path, exist_ok=True)
+
+        diff_tensor = torch.cat(self.val_diff_to_gt, dim=0)
+        diff_tensor = diff_tensor.nanmean(dim=0)
+        torch.save(
+            diff_tensor,
+            os.path.join(epoch_path, "diff.pt"),
+        )
+
+        model_minus_clim = torch.cat(self.val_diff_to_clim, dim=0)
+        model_minus_clim = model_minus_clim.nanmean(dim=[0, 1])
+        torch.save(
+            model_minus_clim,
+            os.path.join(epoch_path, "clim.pt"),
+        )
+
+        self.val_diff_to_gt.clear()
+        self.val_diff_to_clim.clear()
+        gc.collect()
 
     @log_exec_time
     def test_step(self, batch, batch_index) -> None:

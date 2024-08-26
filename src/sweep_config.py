@@ -21,9 +21,8 @@ def get_parameters_dict():
         "optimizer_config_lr": {"value": 1e-5},
         "optimizer_config_betas": {"value": [(0.9, 0.95)]},
         "optimizer_config_weight_decay": {"value": 0.1},
-        "optimizer_config_T_0": {"value": 2},
+        "optimizer_config_T_max": {"value": 50},
         "optimizer_config_eta_min": {"value": 1e-7},
-        "optimizer_config_T_mult": {"value": 2},
         "model_parameter_channel": {"value": 2},
         "model_parameter_transformer_blocks": {"value": 2},
         "model_parameter_heads": {"value": 2},
@@ -53,6 +52,6 @@ def getSweepID():
     sweep_config["parameters"] = get_parameters_dict()
     sweep_id = wandb.sweep(
         sweep=sweep_config,
-        project="FuXiClimateFirstTests",
+        project="FuXiClimateMemLeak",
     )
     return sweep_id

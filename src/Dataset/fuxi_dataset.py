@@ -117,7 +117,6 @@ class FuXiDataset(Dataset):
         )
 
     @staticmethod
-    @lru_cache
     def get_var_name_and_level_at_idx(idx: int) -> Tuple[str, int]:
         if idx < len(SURFACE_VARIABLES):
             return SURFACE_VARIABLES[idx].name, -1

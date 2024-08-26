@@ -6,6 +6,7 @@ import torch
 from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.strategies import DDPStrategy
+from wandb.sdk.wandb_run import Run
 
 import wandb
 from src.Dataset.FuXiDataModule import FuXiDataModule
@@ -34,9 +35,7 @@ def get_autoregression_step_epochs():
         "75": 4,
         "100": 6,
         "125": 8,
-        "150": 10,
-        "175": 12,
-        "-1": 24,
+        "-1": 10,
     }
 
 
@@ -46,15 +45,15 @@ def get_model_parameter():
 
 def get_opt_config():
     return {
-        "optimizer_config_lr": 1e-5,
+        "optimizer_config_lr": 1e-4,
         "optimizer_config_betas": [(0.9, 0.95)],
         "optimizer_config_weight_decay": 0.1,
-        "optimizer_config_T_max": 200,
-        "optimizer_config_eta_min": 1e-8,
+        "optimizer_config_T_max": 100,
+        "optimizer_config_eta_min": 1e-6,
     }
 
 
-def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
+def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int, run: Run | None):
     logger.info("Creating Model")
     # TODO warum so kompliziert?
     optimizer_config = get_opt_config()
@@ -72,7 +71,7 @@ def init_model(data_dir: os.PathLike | str, start_year: int, end_year: int):
         model_params["transformer_heads"],
         autoregression_step_epochs,
         optimizer_config=optimizer_config,
-        fig_path=os.environ.get("FIG_PATH"),
+        tensor_path=os.path.join(os.environ.get("TENSOR_PATH"), run.id),
         raw_fc_layer=raw_fc,
         clima_mean=clim,
     )
@@ -91,7 +90,7 @@ def train():
         if not data_dir:
             raise ValueError("DATA_PATH muss in dem .env File gesetzt sein!")
 
-        model = init_model(data_dir, 1958, 2005)
+        model = init_model(data_dir, 1958, 2005, run)
 
         wandb_logger = WandbLogger(id=run.id, resume="allow")
         wandb_logger.watch(model, log_freq=100)

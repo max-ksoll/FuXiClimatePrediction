@@ -1,7 +1,8 @@
 import gc
 import logging
+import math
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import lightning as L
 import torch
@@ -205,9 +206,49 @@ class FuXi(L.LightningModule):
         #     T_mult=self.optimizer_config["optimizer_config_T_mult"],
         #     eta_min=self.optimizer_config["optimizer_config_eta_min"],
         # )
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer,
+        #     T_max=self.optimizer_config["optimizer_config_T_max"],
+        #     eta_min=self.optimizer_config["optimizer_config_eta_min"],
+        # )
+        scheduler = CosineAnnealingWithFixedLR(
             optimizer,
-            T_max=self.optimizer_config["optimizer_config_T_max"],
-            eta_min=self.optimizer_config["optimizer_config_eta_min"],
+            self.optimizer_config["optimizer_config_T_max"],
+            self.optimizer_config["optimizer_config_eta_min"],
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
+
+
+class CosineAnnealingWithFixedLR(torch.optim.lr_scheduler.LRScheduler):
+    def __init__(
+        self,
+        optimizer: torch.optim.Optimizer,
+        T_max: int,
+        eta_min: float,
+        last_epoch: int = -1,
+    ):
+        self.T_max = T_max
+        self.eta_min = eta_min
+        self.fixed_lr_epoch = T_max
+        for group in optimizer.param_groups:
+            group.setdefault("initial_lr", group["lr"])
+        super(CosineAnnealingWithFixedLR, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self) -> List[float]:
+        print(self.last_epoch, self.fixed_lr_epoch)
+        if self.last_epoch < self.fixed_lr_epoch:
+            return [
+                self.eta_min
+                + (base_lr - self.eta_min)
+                * (1 + math.cos(math.pi * self.last_epoch / self.T_max))
+                / 2
+                for base_lr in self.base_lrs
+            ]
+        else:
+            return [
+                self.eta_min
+                + (base_lr - self.eta_min)
+                * (1 + math.cos(math.pi * self.fixed_lr_epoch / self.T_max))
+                / 2
+                for base_lr in self.base_lrs
+            ]

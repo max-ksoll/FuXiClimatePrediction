@@ -48,7 +48,7 @@ def get_opt_config():
         "optimizer_config_lr": 1e-4,
         "optimizer_config_betas": [(0.9, 0.95)],
         "optimizer_config_weight_decay": 0.1,
-        "optimizer_config_T_max": 100,
+        "optimizer_config_T_max": 350,
         "optimizer_config_eta_min": 1e-6,
     }
 

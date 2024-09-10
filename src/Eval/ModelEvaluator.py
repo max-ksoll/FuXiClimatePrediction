@@ -88,6 +88,7 @@ class ModelEvaluator:
     def evaluate(self):
         model_input: torch.Tensor = self.ds[0]
         model_input = model_input.unsqueeze(0)
+        model_input = model_input.to("cuda")
         model_out = self.model(model_input)
 
         for var_idx in range(1):

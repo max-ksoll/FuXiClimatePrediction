@@ -98,9 +98,9 @@ class ModelEvaluator:
 
 
 if __name__ == "__main__":
+    model_path = os.environ["MODEL_FILE"]
     data_path = os.environ["DATA_PATH"]
     eval_start_year = os.environ["EVAL_START_YEAR"]
-    model_path = os.environ["MODEL_DIR"]
     autoregression_years = os.environ["AUTOREGRESSION_YEARS"]
     output_path = os.environ["OUTPUT_PATH"]
 

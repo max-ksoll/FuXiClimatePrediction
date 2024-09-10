@@ -1,6 +1,8 @@
 import os
 import sys
 
+sys.path.append(os.environ["MODULE_PATH"])
+
 import cv2
 import numpy as np
 import torch
@@ -11,7 +13,6 @@ import cartopy.crs as ccrs
 from src.Dataset.fuxi_dataset import FuXiDataset
 from src.PyModel.fuxi_ligthning import FuXi
 
-sys.path.append(os.environ["MODULE_PATH"])
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
 
 

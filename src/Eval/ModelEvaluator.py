@@ -7,8 +7,8 @@ from matplotlib import pyplot as plt
 import cartopy
 import cartopy.crs as ccrs
 
-from src.Dataset.fuxi_dataset import FuXiDataset
-from src.PyModel.fuxi_ligthning import FuXi
+from ..Dataset.fuxi_dataset import FuXiDataset
+from ..PyModel.fuxi_ligthning import FuXi
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
 

@@ -78,7 +78,7 @@ class FuXiDataset(Dataset):
     def __len__(self):
         return self.len
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> torch.Tensor:
         logger.debug(f"Retrieving Data at Idx: {idx}")
         logger.debug(f"Loading Data")
         sources = [

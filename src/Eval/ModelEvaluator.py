@@ -86,7 +86,8 @@ class ModelEvaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        model_input = self.ds[0]
+        model_input: torch.Tensor = self.ds[0]
+        model_input = model_input.unsqueeze(0)
         model_out = self.model(model_input)
 
         for var_idx in range(1):

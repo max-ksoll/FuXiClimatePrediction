@@ -89,7 +89,7 @@ class ModelEvaluator:
         model_input: torch.Tensor = self.ds[0]
         model_input = model_input.unsqueeze(0)
         model_input = model_input.to("cuda")
-        model_out = self.model(model_input)
+        model_out = self.model(model_input).cpu()
 
         for var_idx in range(1):
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)

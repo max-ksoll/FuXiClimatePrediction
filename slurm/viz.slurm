@@ -22,6 +22,8 @@ export EVAL_START_YEAR="1958"
 export AUTOREGRESSION_YEARS="10"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/videos"
 export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction"
+export FPS="20"
+export FRAME_SIZE="(1920, 1080)"
 
 # Ausführen des Trainingsskripts
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/src/Eval/ModelEvaluator.py

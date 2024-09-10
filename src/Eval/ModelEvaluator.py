@@ -103,9 +103,11 @@ class ModelEvaluator:
 if __name__ == "__main__":
     model_path = os.environ["MODEL_FILE"]
     data_path = os.environ["DATA_PATH"]
-    eval_start_year = os.environ["EVAL_START_YEAR"]
-    autoregression_years = os.environ["AUTOREGRESSION_YEARS"]
+    eval_start_year = int(os.environ["EVAL_START_YEAR"])
+    autoregression_years = int(os.environ["AUTOREGRESSION_YEARS"])
     output_path = os.environ["OUTPUT_PATH"]
+    fps = int(os.environ["FPS"])
+    frame_size = eval(os.environ["FRAME_SIZE"])
 
     model_evaluator = ModelEvaluator(
         model_path,

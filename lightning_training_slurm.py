@@ -121,7 +121,7 @@ def train():
             callbacks=[checkpoint_callback, StochasticWeightAveraging(swa_lrs=1e-2)],
             gradient_clip_val=0.5,
             reload_dataloaders_every_n_epochs=1,
-            max_epochs=1000,
+            max_epochs=int(os.environ.get("MAX_EPOCHS", 1000)),
         )
 
         skip_data_prep = (

@@ -25,6 +25,7 @@ export SKIP_DATA_PREPARATION=true
 export DEVICES=4
 export NODES=1
 export WANDB_MODE=offline
+export MAX_EPOCHS="10"
 
 # Ausführen des Trainingsskripts
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/lightning_training_slurm.py

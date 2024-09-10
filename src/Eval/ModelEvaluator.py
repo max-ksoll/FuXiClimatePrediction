@@ -118,3 +118,4 @@ if __name__ == "__main__":
         fps=20,
         frame_size=(1920, 1080),
     )
+    model_evaluator.evaluate()

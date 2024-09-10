@@ -80,10 +80,12 @@ class FuXi(L.LightningModule):
         self.clima_mean = self.clima_mean.to(*args, **kwargs)
         return self
 
-    def forward(self, *args: Any, **kwargs: Any) -> torch.Tensor:
-        ts = args[0][0]
+    def __call__(self, x):
+        return self.forward(x)
+
+    def forward(self, x) -> torch.Tensor:
         out = self.model.step(
-            ts,
+            x,
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
             return_out=True,

@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -14,6 +15,8 @@ from src.Dataset.fuxi_dataset import FuXiDataset
 from src.PyModel.fuxi_ligthning import FuXi
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class ModelEvaluator:

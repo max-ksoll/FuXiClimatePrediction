@@ -81,11 +81,11 @@ class FuXi(L.LightningModule):
         return self
 
     def __call__(self, x):
-        return self.forward(x)
+        return self.forward(x, None)
 
-    def forward(self, x) -> torch.Tensor:
+    def forward(self, input, target) -> torch.Tensor:
         out = self.model.step(
-            x,
+            input,
             self.lat_weights,
             autoregression_steps=self.autoregression_steps,
             return_out=True,

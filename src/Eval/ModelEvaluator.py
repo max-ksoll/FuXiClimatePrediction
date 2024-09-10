@@ -64,7 +64,7 @@ class ModelEvaluator:
 
     @staticmethod
     def plot_data(data, var_idx, time_idx):
-        data = data[time_idx][var_idx]
+        data = data[0, time_idx, var_idx]
         fig, ax = plt.subplots(
             figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
         )

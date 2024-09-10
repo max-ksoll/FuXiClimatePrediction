@@ -27,7 +27,8 @@ class ModelEvaluator:
         fps=20,
         frame_size=(1920, 1080),
     ):
-        self.model: FuXi = torch.load(model_path)
+        model_ckpt = torch.load(model_path)
+        self.model = FuXi.load_from_checkpoint(model_ckpt)
         self.model.eval()
         self.autoregression_steps = autoregression_years * 12
         self.model.autoregression_steps = self.autoregression_steps

@@ -1,175 +1,115 @@
 import os
-from typing import Tuple, List
 
+import cv2
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-
-from src.Dataset.dimensions import LAT, LON
-from src.Dataset.fuxi_dataset import FuXiDataset
-from src.utils import log_exec_time
-
+import cartopy
 import cartopy.crs as ccrs
+
+from src.Dataset.fuxi_dataset import FuXiDataset
+from src.PyModel.fuxi_ligthning import FuXi
+
+cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
 
 
 class ModelEvaluator:
     def __init__(
         self,
-        clima_mean: torch.Tensor,
-        lat_weights: torch.Tensor,
-        fig_path: str | os.PathLike,
+        model_path,
+        eval_start_year,
+        autoregression_years,
+        data_path,
+        output_path,
+        fps=20,
+        frame_size=(1920, 1080),
     ):
-        self.clima_mean = clima_mean.clone().detach().cpu()
-        self.lat_weights = lat_weights.clone().detach().cpu()
-        self.fig_path = fig_path
-        # In month 1, 3, 5, ...
-        # Es werden nur Grafiken erstellt für die Vorhandenen Schritte
-        # 1 Autoregression -> nur 1 Plot
-        # 5 Autoregression -> 3 Plots
-        self.autoregression_steps_plots = [
-            0,
-            2,
-            4,
-            6,
-            9,
-        ]
-        self.model_outs = []
-        self.gt = []
+        self.model: FuXi = torch.load(model_path)
+        self.model.eval()
+        self.autoregression_steps = autoregression_years * 12
+        self.model.autoregression_steps = self.autoregression_steps
+        self.output_path = output_path
+        self.fps = fps
+        self.frame_size = frame_size
+        os.makedirs(output_path, exist_ok=True)
 
-    def reset(self):
-        self.model_outs.clear()
-        self.gt.clear()
+        data_file_path = ModelEvaluator.find_file_with_start_year(
+            data_path, eval_start_year
+        )[0]
+        mean_file_path = os.path.join(
+            data_path, "mean_" + data_file_path.split("/")[-1]
+        )
+        self.ds = FuXiDataset(data_file_path, mean_file_path)
 
-    def update(self, outs: torch.Tensor, gt: torch.Tensor, batch_idx: int):
-        """
+    @staticmethod
+    def find_file_with_start_year(data_path, start_year):
+        return_files = []
+        for file in os.listdir(data_path):
+            filename = file.split("/")[-1]
+            is_zarr = ".zarr" in filename
+            is_mean = "mean" in filename
+            print(filename, is_mean, is_zarr)
+            if is_zarr and not is_mean:
+                filename = filename.split(".")[0]
+                sy, ey = filename.split("_")
+                if start_year in list(range(int(sy), int(ey) + 1)):
+                    return_files.append(os.path.join(data_path, file))
+        return return_files
 
-        Args:
-            gt: Groundtruth
-            outs: Tensor of Shape Batch Size x Autoregression x Variables x Latitude x Longitude
-            batch_idx: Idx of the Batch, because of possible DDP
-
-        Returns:
-
-        """
-        self.model_outs.append(outs.clone().detach().cpu())
-        self.gt.append(gt.clone().detach().cpu())
-
-    @torch.no_grad()
-    def evaluate(self):
-        diff_tensor_list = []
-        model_out_minus_clim = []
-
-        for idx in range(len(self.model_outs)):
-            timeseries = self.gt[idx]
-            model_outs = self.model_outs[idx]
-
-            diff_tensor_list.append(model_outs - timeseries)
-            model_out_minus_clim.append(model_outs - self.clima_mean)
-
-        return_dict = dict()
-
-        diff_tensor = torch.cat(diff_tensor_list)
-        diff_tensor = diff_tensor.nanmean(dim=0)
-        diff_tensor[:, :, -2:2, :] = 0
-        diff_tensor_list.clear()
-
-        model_minus_clim = torch.cat(model_out_minus_clim)
-        model_minus_clim = model_minus_clim.nanmean(dim=[0, 1])
-        model_out_minus_clim.clear()
-
-        # TODO Level wollen wir einerseits gemeant und andererseits auch einzeln haben
-        image_dict_avg_diff = {}
-        image_dict_minus_clim = {}
-        for var_idx in range(35):
-            paths, var_name = self.plot_average_difference_over_time(
-                diff_tensor, var_idx
-            )
-            image_dict_avg_diff[var_name] = paths
-            path, var_name = self.plot_model_minus_clim(model_minus_clim, var_idx)
-            image_dict_minus_clim[var_name] = [path]
-
-        return_dict["img"] = {}
-        return_dict["img"]["average_difference_over_time"] = image_dict_avg_diff
-        return_dict["img"]["model_out_minus_clim"] = image_dict_minus_clim
-
-        return return_dict
-
-    def plot_average_difference_over_time(
-        self, difference, variable_idx
-    ) -> Tuple[List[str | os.PathLike], str]:
-        # AUTOREGRESSION X VARIABLES X LATITUDE X LONGITUDE
-        diff = difference[:, variable_idx, :, :]
-        var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
-
-        if var_level >= 0:
-            var_name += f"{var_level}"
-
-        paths = []
-
-        for auto_step_to_plot in self.autoregression_steps_plots:
-            if diff.shape[0] <= auto_step_to_plot:
-                return paths, var_name
-
-            data = diff[auto_step_to_plot]
-            paths.append(
-                self._plot_average_difference_over_time(
-                    data, var_name, auto_step_to_plot
-                )
-            )
-
-    @log_exec_time
-    def _plot_average_difference_over_time(self, data, var_name, auto_step_to_plot):
+    @staticmethod
+    def plot_data(data, var_idx, time_idx):
+        data = data[time_idx][var_idx]
         fig, ax = plt.subplots(
-            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
+            figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
         )
         ax.coastlines()
-
-        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
-        lons = np.linspace(-180, 180, LON.size)
+        lons = np.linspace(-180, 180, data.shape[1])
+        lats = np.linspace(-90, 90, data.shape[0])
         im = ax.pcolormesh(
             lons, lats, data, transform=ccrs.PlateCarree(), shading="auto"
         )
         plt.colorbar(im, ax=ax, orientation="vertical")
+        name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
+        ax.set_title(f"Var: {name} at Level: {level} at Time idx: {time_idx}")
+        fig.canvas.draw()
+        data = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+        data = cv2.cvtColor(data, cv2.COLOR_RGBA2BGR)
+        plt.close(fig)
+        return data
 
-        ax.set_title(f"{var_name} {auto_step_to_plot+1}m into future")
-        save_path = os.path.join(
-            self.fig_path,
-            f"avg-diff-time_{var_name}_{auto_step_to_plot+1}m_into_future.png",
-        )
+    @torch.no_grad()
+    def evaluate(self):
+        model_input = self.ds[0]
+        model_out = self.model(model_input)
 
-        plt.savefig(save_path)
-        plt.close("all")
+        for var_idx in range(1):
+            name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
+            path = os.path.join(self.output_path, f"{name}_{level}.mp4")
+            out = cv2.VideoWriter(
+                path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, self.frame_size
+            )
 
-        return save_path
+            for step in range(self.autoregression_steps - 1):
+                img = ModelEvaluator.plot_data(model_out, 0, step)
+                bild_resized = cv2.resize(img, self.frame_size)
+                out.write(bild_resized)
+            out.release()
 
-    def plot_model_minus_clim(
-        self, model_minus_clim, variable_idx
-    ) -> Tuple[str | os.PathLike, str]:
-        # AUTOREGRESSION X VARIABLES X LATITUDE X LONGITUDE
-        difference = model_minus_clim[variable_idx, :, :]
-        var_name, var_level = FuXiDataset.get_var_name_and_level_at_idx(variable_idx)
 
-        if var_level >= 0:
-            var_name += f"{var_level}"
+if __name__ == "__main__":
+    data_path = os.environ["DATA_PATH"]
+    eval_start_year = os.environ["EVAL_START_YEAR"]
+    model_path = os.environ["MODEL_DIR"]
+    autoregression_years = os.environ["AUTOREGRESSION_YEARS"]
+    output_path = os.environ["OUTPUT_PATH"]
 
-        fig, ax = plt.subplots(
-            figsize=(12, 8), subplot_kw={"projection": ccrs.Robinson()}
-        )
-        ax.coastlines()
-
-        lats = np.linspace(LAT.min_val, LAT.max_val, LAT.size)
-        lons = np.linspace(-180, 180, LON.size)
-        im = ax.pcolormesh(
-            lons, lats, difference, transform=ccrs.PlateCarree(), shading="auto"
-        )
-        plt.colorbar(im, ax=ax, orientation="vertical")
-        ax.set_title(f"{var_name} difference to clim")
-        save_path = os.path.join(
-            self.fig_path,
-            f"diff-clim_{var_name}.png",
-        )
-
-        plt.savefig(save_path)
-        plt.close("all")
-
-        return save_path, var_name
+    model_evaluator = ModelEvaluator(
+        model_path,
+        eval_start_year,
+        autoregression_years,
+        data_path,
+        output_path,
+        fps=20,
+        frame_size=(1920, 1080),
+    )

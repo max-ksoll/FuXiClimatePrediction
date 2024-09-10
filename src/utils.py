@@ -229,6 +229,10 @@ def get_clima_mean(
     return (clim - min[:, None, None]) / (max - min)[:, None, None]
 
 
+def get_subdirectories(path: os.PathLike | str) -> List[os.PathLike | str]:
+    return [f.path for f in os.scandir(path) if f.is_dir()]
+
+
 if __name__ == "__main__":
     auto = {
         "25": 1,

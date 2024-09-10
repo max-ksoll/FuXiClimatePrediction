@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
 #SBATCH --cpus-per-task=80            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
 #SBATCH --gres=gpu:4                 # Anzahl der GPUs pro Knoten
-#SBATCH --time=24:00:00              # Laufzeit (hh:mm:ss)
+#SBATCH --time=36:00:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
@@ -20,7 +20,7 @@ export TENSOR_PATH="/gpfs/projects/ehpc03/max/tensors"
 export WANDB_DIR="/gpfs/projects/ehpc03/max"
 export MODEL_DIR="/gpfs/projects/ehpc03/max/models"
 export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
-export RAW_FC_LAYER=False
+export RAW_FC_LAYER=True
 export SKIP_DATA_PREPARATION=true
 export DEVICES=4
 export NODES=1

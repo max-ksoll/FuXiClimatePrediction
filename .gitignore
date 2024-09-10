@@ -181,3 +181,4 @@ packages
 wandb_offline_sync
 memray
 tensors
+videos

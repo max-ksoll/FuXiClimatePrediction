@@ -48,13 +48,6 @@ class FuXi(L.LightningModule):
         self.config = autoregression_config
         self.optimizer_config = optimizer_config
         self.lat_weights = get_latitude_weights(LAT)
-        self.save_hyperparameters(
-            "input_vars",
-            "channels",
-            "transformer_blocks",
-            "transformer_heads",
-            "raw_fc_layer",
-        )
         self.tensor_path = tensor_path
         os.makedirs(tensor_path, exist_ok=True)
         self.clima_mean = clima_mean
@@ -68,6 +61,7 @@ class FuXi(L.LightningModule):
             6,
             9,
         ]
+        self.save_hyperparameters()
 
     def on_train_epoch_start(self) -> None:
         old_auto_steps = self.autoregression_steps

@@ -61,7 +61,7 @@ class FuXi(torch.nn.Module):
         return_out=True,
         return_loss=True,
     ) -> Dict[str, torch.Tensor]:
-        if autoregression_steps > timeseries.shape[1] - 2:
+        if return_loss and autoregression_steps > timeseries.shape[1] - 2:
             raise ValueError(
                 "autoregression_steps can't be greater than number of samples"
             )

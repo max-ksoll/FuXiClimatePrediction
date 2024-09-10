@@ -21,7 +21,7 @@ export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
 export EVAL_START_YEAR="1958"
 export AUTOREGRESSION_YEARS="10"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/videos"
-export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction"
+export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction/src"
 
 # Ausführen des Trainingsskripts
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/src/Eval/ModelEvaluator.py

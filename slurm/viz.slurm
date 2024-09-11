@@ -16,7 +16,7 @@ module load mkl intel impi hdf5 python cuda cudnn
 source /gpfs/projects/ehpc03/max/venv/bin/activate
 
 export DATA_PATH="/gpfs/projects/ehpc03/max/data"
-export MODEL_FILE="/gpfs/projects/ehpc03/max/models/epoch=9-step=1440.ckpt"
+export MODEL_FILE="/gpfs/projects/ehpc03/max/models/epoch=105-step=15152.ckpt"
 export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
 export EVAL_START_YEAR="1958"
 export AUTOREGRESSION_YEARS="20"

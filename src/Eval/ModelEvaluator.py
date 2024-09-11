@@ -89,7 +89,7 @@ class ModelEvaluator:
         model_input: torch.Tensor = self.ds[0]
         model_input = model_input.unsqueeze(0)
         model_input = model_input.to("cuda")
-        model_out = self.model(model_input).cpu()
+        model_out = self.model(model_input, None).cpu()
 
         # for var_idx in range(1):
         for var_idx in range(4, 5):

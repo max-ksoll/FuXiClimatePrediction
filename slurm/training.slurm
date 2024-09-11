@@ -2,9 +2,9 @@
 #SBATCH --job-name=FuXi_Training     # Jobname
 #SBATCH --nodes=1                    # Anzahl der Knoten
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
-#SBATCH --cpus-per-task=80            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
-#SBATCH --gres=gpu:4                 # Anzahl der GPUs pro Knoten
-#SBATCH --time=36:00:00              # Laufzeit (hh:mm:ss)
+#SBATCH --cpus-per-task=320            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
+#SBATCH --gres=gpu:16                 # Anzahl der GPUs pro Knoten
+#SBATCH --time=12:00:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
@@ -23,9 +23,9 @@ export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
 export RAW_FC_LAYER=False
 export SKIP_DATA_PREPARATION=true
 export DEVICES=4
-export NODES=1
+export NODES=4
 export WANDB_MODE=offline
-export MAX_EPOCHS="10"
+export MAX_EPOCHS="1000"
 
 # Ausführen des Trainingsskripts
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/lightning_training_slurm.py

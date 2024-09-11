@@ -92,7 +92,7 @@ class ModelEvaluator:
         model_out = self.model(model_input, None).cpu()
 
         # for var_idx in range(1):
-        for var_idx in range(4, 5):
+        for var_idx in range(35):
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
             out = cv2.VideoWriter(

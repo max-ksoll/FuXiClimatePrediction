@@ -91,7 +91,8 @@ class ModelEvaluator:
         model_input = model_input.to("cuda")
         model_out = self.model(model_input).cpu()
 
-        for var_idx in range(1):
+        # for var_idx in range(1):
+        for var_idx in range(4, 5):
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
             out = cv2.VideoWriter(

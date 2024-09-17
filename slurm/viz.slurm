@@ -15,11 +15,13 @@ module load mkl intel impi hdf5 python cuda cudnn
 
 source /gpfs/projects/ehpc03/max/venv/bin/activate
 
-export DATA_PATH="/gpfs/projects/ehpc03/max/data"
+export DATA_PATH="/gpfs/projects/ehpc03/max/data/1958_2014.zarr"
+export MEAN_DATA_PATH="/gpfs/projects/ehpc03/max/data/mean_1958_2014.zarr"
+
 export MODEL_FILE="/gpfs/projects/ehpc03/max/models/epoch=105-step=15152.ckpt"
 export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
-export EVAL_START_YEAR="1958"
-export AUTOREGRESSION_YEARS="20"
+export EVAL_START_OFFSET_MONTH_FROM_JAN_1958="0"
+export AUTOREGRESSION_STEPS="240"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/videos"
 export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction"
 export FPS="20"

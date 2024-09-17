@@ -1,6 +1,11 @@
-import xarray as xr
+import logging
 
-from src.Dataset.era5_dataset import ERA5Dataset
+from src.Dataset.create_data import DataBuilder
 
-ds = ERA5Dataset(dataset_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
-                 means_file="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr")
+logging.basicConfig(level=logging.DEBUG)
+start_year = 1958
+end_year = 2014
+data_dir = "/home/stud1/data/fuxi"
+
+builder = DataBuilder(data_dir, start_year, end_year)
+builder.generate_data()

@@ -22,45 +22,29 @@ logger = logging.getLogger(__name__)
 class ModelEvaluator:
     def __init__(
         self,
-        model_path,
-        eval_start_year,
-        autoregression_years,
-        data_path,
+        model_path: os.PathLike | str,
+        dataset: FuXiDataset,
+        autoregression_steps: int,
+        start_offset: int,
         output_path,
         fps=20,
         frame_size=(1920, 1080),
     ):
         self.model = FuXi.load_from_checkpoint(model_path)
         self.model.eval()
-        self.autoregression_steps = autoregression_years * 12
+        self.autoregression_steps = autoregression_steps
         self.model.autoregression_steps = self.autoregression_steps
         self.output_path = output_path
         self.fps = fps
         self.frame_size = frame_size
         os.makedirs(output_path, exist_ok=True)
 
-        data_file_path = ModelEvaluator.find_file_with_start_year(
-            data_path, eval_start_year
-        )[0]
-        mean_file_path = os.path.join(
-            data_path, "mean_" + data_file_path.split("/")[-1]
-        )
-        self.ds = FuXiDataset(data_file_path, mean_file_path)
+        self.offset = start_offset
+        self.dataset = dataset
 
-    @staticmethod
-    def find_file_with_start_year(data_path, start_year):
-        return_files = []
-        for file in os.listdir(data_path):
-            filename = file.split("/")[-1]
-            is_zarr = ".zarr" in filename
-            is_mean = "mean" in filename
-            print(filename, is_mean, is_zarr)
-            if is_zarr and not is_mean:
-                filename = filename.split(".")[0]
-                sy, ey = filename.split("_")
-                if start_year in list(range(int(sy), int(ey) + 1)):
-                    return_files.append(os.path.join(data_path, file))
-        return return_files
+        self.month_after_data = min(
+            0, (2014 + 1 - 1958) * 12 - start_offset - autoregression_steps
+        )
 
     @staticmethod
     def plot_data(data, var_idx, time_idx):
@@ -86,42 +70,64 @@ class ModelEvaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        model_input: torch.Tensor = self.ds[0]
+        model_input: torch.Tensor = self.inference_dataset[self.offset]
         model_input = model_input.unsqueeze(0)
-        model_input = model_input.to("cuda")
+        model_input = model_input.to(self.model.device)
         model_out = self.model(model_input, None).cpu()
+        # bs x auto_step x var x lat x lon
+        model_minus_correct = model_out.clone()
+
+        for idx, elem in enumerate(iter(self.dataset)):
+            if idx >= self.autoregression_steps:
+                break
+            model_minus_correct[:, idx] -= elem[-1]
+
+        if self.month_after_data < 0:
+            model_minus_correct[:, self.month_after_data] = 0
 
         # for var_idx in range(1):
         for var_idx in range(35):
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
+            diff_path = os.path.join(self.output_path, f"diff_{name}_{level}.mp4")
             out = cv2.VideoWriter(
                 path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, self.frame_size
             )
+            diff_out = cv2.VideoWriter(
+                diff_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, self.frame_size
+            )
 
             for step in range(self.autoregression_steps - 1):
-                img = ModelEvaluator.plot_data(model_out, 0, step)
+                img = ModelEvaluator.plot_data(model_out, var_idx, step)
                 bild_resized = cv2.resize(img, self.frame_size)
                 out.write(bild_resized)
+
+                img = ModelEvaluator.plot_data(model_minus_correct, var_idx, step)
+                bild_resized = cv2.resize(img, self.frame_size)
+                diff_out.write(bild_resized)
             out.release()
+            diff_out.release()
 
 
 if __name__ == "__main__":
     model_path = os.environ["MODEL_FILE"]
     data_path = os.environ["DATA_PATH"]
-    eval_start_year = int(os.environ["EVAL_START_YEAR"])
-    autoregression_years = int(os.environ["AUTOREGRESSION_YEARS"])
+    mean_data_path = os.environ["MEAN_DATA_PATH"]
+    offset = int(os.environ["INFERENCE_START_OFFSET_MONTH_FROM_JAN_1958"])
+    autoregression_steps = int(os.environ["AUTOREGRESSION_STEPS"])
     output_path = os.environ["OUTPUT_PATH"]
     fps = int(os.environ["FPS"])
     frame_size = eval(os.environ["FRAME_SIZE"])
 
+    dataset = FuXiDataset(data_path, mean_data_path)
+
     model_evaluator = ModelEvaluator(
         model_path,
-        eval_start_year,
-        autoregression_years,
-        data_path,
+        dataset,
+        autoregression_steps,
+        offset,
         output_path,
-        fps=20,
-        frame_size=(1920, 1080),
+        fps=fps,
+        frame_size=frame_size,
     )
     model_evaluator.evaluate()

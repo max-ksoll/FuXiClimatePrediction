@@ -70,7 +70,7 @@ class ModelEvaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        model_input: torch.Tensor = self.inference_dataset[self.offset]
+        model_input: torch.Tensor = self.dataset[self.offset]
         model_input = model_input.unsqueeze(0)
         model_input = model_input.to(self.model.device)
         model_out = self.model(model_input, None).cpu()

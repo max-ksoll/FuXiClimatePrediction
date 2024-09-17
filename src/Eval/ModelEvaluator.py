@@ -79,7 +79,7 @@ class ModelEvaluator:
         clb = plt.colorbar(im, ax=ax, orientation="vertical")
         clb.ax.set_ylabel(f"{ModelEvaluator.get_unit_for_var_name(name)}", rotation=270)
 
-        ax.set_title(f"Var: {name} at Level: {level} at Time idx: {time_idx}")
+        ax.set_title(f"Var: {name} at Level: {level} at Time idx: {time_idx + 1}")
         fig.canvas.draw()
         data = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
         data = data.reshape(fig.canvas.get_width_height()[::-1] + (4,))
@@ -127,7 +127,7 @@ class ModelEvaluator:
                 model_minus_correct[:, :, var_idx].max(),
             )
 
-            for step in range(self.autoregression_steps - 1):
+            for step in range(self.autoregression_steps):
                 img = ModelEvaluator.plot_data(
                     model_out, var_idx, step, out_min, out_max
                 )

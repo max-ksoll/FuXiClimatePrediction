@@ -3,8 +3,6 @@ import os
 import sys
 from functools import lru_cache
 
-from src.Dataset.dimensions import LEVEL_VARIABLES, SURFACE_VARIABLES
-
 sys.path.append(os.environ["MODULE_PATH"])
 
 import cv2
@@ -16,6 +14,7 @@ import cartopy.crs as ccrs
 
 from src.Dataset.fuxi_dataset import FuXiDataset
 from src.PyModel.fuxi_ligthning import FuXi
+from src.Dataset.dimensions import LEVEL_VARIABLES, SURFACE_VARIABLES
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
 logging.basicConfig(level=logging.DEBUG)

@@ -56,9 +56,14 @@ class ModelEvaluator:
         lons = np.linspace(-180, 180, data.shape[1])
         lats = np.linspace(-90, 90, data.shape[0])
         im = ax.pcolormesh(
-            lons, lats, data, transform=ccrs.PlateCarree(), shading="auto"
+            lons,
+            lats,
+            data,
+            transform=ccrs.PlateCarree(),
+            shading="auto",
+            vmin=d_min,
+            vmax=d_max,
         )
-        plt.clim(d_min, d_max)
         plt.colorbar(im, ax=ax, orientation="vertical")
         name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
         ax.set_title(f"Var: {name} at Level: {level} at Time idx: {time_idx}")

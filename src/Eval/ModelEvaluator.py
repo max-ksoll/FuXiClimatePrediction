@@ -44,10 +44,6 @@ class ModelEvaluator:
         self.offset = start_offset
         self.dataset = dataset
 
-        self.month_after_data = min(
-            0, (2014 + 1 - 1958) * 12 - start_offset - autoregression_steps
-        )
-
     @staticmethod
     @lru_cache
     def get_unit_for_var_name(var_name):
@@ -96,13 +92,11 @@ class ModelEvaluator:
         # bs x auto_step x var x lat x lon
         model_minus_correct = model_out.clone()
 
-        for idx, elem in enumerate(iter(self.dataset)):
-            if idx >= self.autoregression_steps:
-                break
-            model_minus_correct[:, idx] -= elem[-1]
-
-        if self.month_after_data < 0:
-            model_minus_correct[:, self.month_after_data] = 0
+        for idx in range(self.offset + self.autoregression_steps):
+            if idx > len(self.dataset) + 2:
+                model_minus_correct[:, idx] = 0
+                continue
+            model_minus_correct[:, idx] -= self.dataset[idx][-1]
 
         self.dataset.denormalize(model_out)
         self.dataset.denormalize(model_minus_correct)

@@ -33,7 +33,7 @@ class ModelEvaluator:
         self.model = FuXi.load_from_checkpoint(model_path)
         self.model.eval()
         self.autoregression_steps = autoregression_steps
-        self.model.autoregression_steps = self.autoregression_steps
+        self.model.autoregression_steps = self.autoregression_steps + 2
         self.output_path = output_path
         self.fps = fps
         self.frame_size = frame_size
@@ -47,12 +47,13 @@ class ModelEvaluator:
         )
 
     @staticmethod
-    def plot_data(data, var_idx, time_idx):
+    def plot_data(data, var_idx, time_idx, d_min, d_max):
         data = data[0, time_idx, var_idx]
         fig, ax = plt.subplots(
             figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
         )
         ax.coastlines()
+        ax.set_xlim([d_min, d_max])
         lons = np.linspace(-180, 180, data.shape[1])
         lats = np.linspace(-90, 90, data.shape[0])
         im = ax.pcolormesh(
@@ -97,12 +98,25 @@ class ModelEvaluator:
                 diff_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, self.frame_size
             )
 
+            out_min, out_max = (
+                model_out[:, :, var_idx].min(),
+                model_out[:, :, var_idx].max(),
+            )
+            diff_out_min, diff_out_max = (
+                model_minus_correct[:, :, var_idx].min(),
+                model_minus_correct[:, :, var_idx].max(),
+            )
+
             for step in range(self.autoregression_steps - 1):
-                img = ModelEvaluator.plot_data(model_out, var_idx, step)
+                img = ModelEvaluator.plot_data(
+                    model_out, var_idx, step, out_min, out_max
+                )
                 bild_resized = cv2.resize(img, self.frame_size)
                 out.write(bild_resized)
 
-                img = ModelEvaluator.plot_data(model_minus_correct, var_idx, step)
+                img = ModelEvaluator.plot_data(
+                    model_minus_correct, var_idx, step, diff_out_min, diff_out_max
+                )
                 bild_resized = cv2.resize(img, self.frame_size)
                 diff_out.write(bild_resized)
             out.release()

@@ -20,7 +20,7 @@ export MEAN_DATA_PATH="/gpfs/projects/ehpc03/max/data/mean_1958_2014.zarr"
 
 export MODEL_FILE="/gpfs/projects/ehpc03/max/models/epoch=531-step=74573.ckpt"
 export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
-export EVAL_START_OFFSET_MONTH_FROM_JAN_1958="0"
+export INFERENCE_START_OFFSET_MONTH_FROM_JAN_1958="0"
 export AUTOREGRESSION_STEPS="240"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/videos"
 export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction"

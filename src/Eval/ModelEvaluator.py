@@ -92,8 +92,8 @@ class ModelEvaluator:
         # bs x auto_step x var x lat x lon
         model_minus_correct = model_out.clone()
 
-        for idx in range(self.offset + self.autoregression_steps):
-            if idx > len(self.dataset) + 2:
+        for idx in range(self.autoregression_steps):
+            if self.offset + idx > len(self.dataset) + 2:
                 model_minus_correct[:, idx:] = 0
                 break
             model_minus_correct[:, idx] -= self.dataset[idx][-1]

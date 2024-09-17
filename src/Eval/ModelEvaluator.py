@@ -94,8 +94,8 @@ class ModelEvaluator:
 
         for idx in range(self.offset + self.autoregression_steps):
             if idx > len(self.dataset) + 2:
-                model_minus_correct[:, idx] = 0
-                continue
+                model_minus_correct[:, idx:] = 0
+                break
             model_minus_correct[:, idx] -= self.dataset[idx][-1]
 
         self.dataset.denormalize(model_out)

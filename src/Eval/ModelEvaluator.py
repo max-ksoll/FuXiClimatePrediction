@@ -93,7 +93,7 @@ class ModelEvaluator:
         model_minus_correct = model_out.clone()
 
         for idx in range(self.autoregression_steps):
-            if self.offset + idx > len(self.dataset) + 2:
+            if self.offset + idx > len(self.dataset) + 1:
                 model_minus_correct[:, idx:] = 0
                 break
             model_minus_correct[:, idx] -= self.dataset[self.offset + idx][-1]

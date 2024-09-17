@@ -1,6 +1,9 @@
 import logging
 import os
 import sys
+from functools import lru_cache
+
+from src.Dataset.dimensions import LEVEL_VARIABLES, SURFACE_VARIABLES
 
 sys.path.append(os.environ["MODULE_PATH"])
 
@@ -47,6 +50,13 @@ class ModelEvaluator:
         )
 
     @staticmethod
+    @lru_cache
+    def get_unit_for_var_name(var_name):
+        variables = LEVEL_VARIABLES + SURFACE_VARIABLES
+        variables = list(filter(lambda x: x.name == var_name, variables))
+        return variables[0].unit
+
+    @staticmethod
     def plot_data(data, var_idx, time_idx, d_min, d_max):
         data = data[0, time_idx, var_idx]
         fig, ax = plt.subplots(
@@ -64,8 +74,12 @@ class ModelEvaluator:
             vmin=d_min,
             vmax=d_max,
         )
-        plt.colorbar(im, ax=ax, orientation="vertical")
+
         name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
+
+        clb = plt.colorbar(im, ax=ax, orientation="vertical")
+        clb.ax.set_ylabel(f"{ModelEvaluator.get_unit_for_var_name(name)}", rotation=270)
+
         ax.set_title(f"Var: {name} at Level: {level} at Time idx: {time_idx}")
         fig.canvas.draw()
         data = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
@@ -91,7 +105,9 @@ class ModelEvaluator:
         if self.month_after_data < 0:
             model_minus_correct[:, self.month_after_data] = 0
 
-        # for var_idx in range(1):
+        self.dataset.denormalize(model_out)
+        self.dataset.denormalize(model_minus_correct)
+
         for var_idx in range(35):
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")

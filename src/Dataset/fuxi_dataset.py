@@ -157,10 +157,12 @@ class FuXiDataset(Dataset):
 
 
 if __name__ == "__main__":
-    ds = FuXiDataset(
-        dataset_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
-        means_file="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
-    )
-    for item in iter(ds):
-        print(item[0].shape, item[1].shape)
-        break
+    # ds = FuXiDataset(
+    #     dataset_path="/Users/ksoll/git/FuXiClimatePrediction/data/1958_1958.zarr",
+    #     means_file="/Users/ksoll/git/FuXiClimatePrediction/data/mean_1958_1958.zarr",
+    # )
+    # for item in iter(ds):
+    #     print(item[0].shape, item[1].shape)
+    #     break
+    for i in range(35):
+        print(i, FuXiDataset.get_var_name_and_level_at_idx(i))

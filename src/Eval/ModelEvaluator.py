@@ -17,6 +17,7 @@ from src.PyModel.fuxi_ligthning import FuXi
 from src.Dataset.dimensions import LEVEL_VARIABLES, SURFACE_VARIABLES
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
+TASK_ID = os.environ.get("SLURM_ARRAY_TASK_ID", -1)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,8 @@ class ModelEvaluator:
         output_path,
         fps=20,
         frame_size=(1920, 1080),
+        load_tensor_if_available=True,
+        only_create_model_output=False,
     ):
         self.model = FuXi.load_from_checkpoint(model_path)
         self.model.eval()
@@ -43,6 +46,12 @@ class ModelEvaluator:
 
         self.offset = start_offset
         self.dataset = dataset
+        self.load_tensor_if_available = load_tensor_if_available
+        model = model_path.split("/")[-1]
+        self.tensor_path = os.path.join(
+            output_path, f"{model}_{start_offset}_{autoregression_steps}.pt"
+        )
+        self.only_create_model_output = only_create_model_output
 
     @staticmethod
     @lru_cache
@@ -83,25 +92,63 @@ class ModelEvaluator:
         plt.close(fig)
         return data
 
-    @torch.no_grad()
-    def evaluate(self):
-        model_input: torch.Tensor = self.dataset[self.offset]
-        model_input = model_input.unsqueeze(0)
-        model_input = model_input.to(self.model.device)
-        model_out = self.model(model_input, None).cpu()
-        # bs x auto_step x var x lat x lon
-        model_minus_correct = model_out.clone()
+    @staticmethod
+    def get_slice_for_lat_lon(
+        lat_start: float, lat_end: float, lon_start: float, lon_end: float, tensor_shape
+    ):
+        """
+        Berechnet die Slice-Indizes für gegebene Breitengrad- und Längengradbereiche basierend auf der Tensorform.
 
-        for idx in range(self.autoregression_steps):
-            if self.offset + idx >= len(self.dataset):
-                model_minus_correct[:, idx:] = 0
-                break
-            model_minus_correct[:, idx] -= self.dataset[self.offset + idx][-1]
+        Parameters:
+        lat_start (float): Startwert des Breitengrads in Grad (-90 bis +90).
+        lat_end (float): Endwert des Breitengrads in Grad (-90 bis +90).
+        lon_start (float): Startwert des Längengrads in Grad (-180 bis +180).
+        lon_end (float): Endwert des Längengrads in Grad (-180 bis +180).
+        tensor_shape (tuple): Form des Tensors, beinhaltet die Größen der Latitude- und Longitude-Dimensionen.
 
-        self.dataset.denormalize(model_out)
-        self.dataset.denormalize(model_minus_correct)
+        Returns:
+        Tuple[Tuple[int, int], Tuple[int, int]]: ((lat_start_idx, lat_end_idx), (lon_start_idx, lon_end_idx))
+        """
+        # Extrahiere die Größen der Latitude- und Longitude-Dimensionen
+        # Angenommen, der Tensor hat die Form [Batch Size, Autoregression, Variablen, Latitude, Longitude]
+        lat_size = tensor_shape[3]
+        lon_size = tensor_shape[4]
 
-        for var_idx in range(35):
+        # Definiere die Bereiche von Latitude und Longitude im Tensor
+        lat_min = -90.0
+        lat_max = 90.0
+        lon_min = -180.0
+        lon_max = 180.0
+
+        # Berechne die Schrittweite (Auflösung) für Latitude und Longitude
+        lat_step = (lat_max - lat_min) / (lat_size - 1)
+        lon_step = (lon_max - lon_min) / (lon_size - 1)
+
+        # Berechne die Indizes für Latitude
+        lat_start_idx = int(round((lat_start - lat_min) / lat_step))
+        lat_end_idx = int(round((lat_end - lat_min) / lat_step))
+        lat_start_idx = max(0, min(lat_start_idx, lat_size - 1))
+        lat_end_idx = max(0, min(lat_end_idx, lat_size - 1))
+        if lat_start_idx > lat_end_idx:
+            lat_start_idx, lat_end_idx = lat_end_idx, lat_start_idx
+
+        # Berechne die Indizes für Longitude
+        lon_start_idx = int(round((lon_start - lon_min) / lon_step))
+        lon_end_idx = int(round((lon_end - lon_min) / lon_step))
+        lon_start_idx = max(0, min(lon_start_idx, lon_size - 1))
+        lon_end_idx = max(0, min(lon_end_idx, lon_size - 1))
+        if lon_start_idx > lon_end_idx:
+            lon_start_idx, lon_end_idx = lon_end_idx, lon_start_idx
+
+        return (lat_start_idx, lat_end_idx), (lon_start_idx, lon_end_idx)
+
+    def create_videos(self, model_out, model_minus_correct):
+        start = TASK_ID
+        end = TASK_ID + 1
+        if TASK_ID == -1:
+            start = 0
+            vars = 35
+        for var_idx in range(start, end):
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
             diff_path = os.path.join(self.output_path, f"diff_{name}_{level}.mp4")
@@ -136,6 +183,78 @@ class ModelEvaluator:
             out.release()
             diff_out.release()
 
+    @torch.no_grad()
+    def evaluate(self):
+        model_out = self.get_model_out()
+        if self.only_create_model_output:
+            return
+        # bs x auto_step x var x lat x lon
+        model_minus_correct = model_out.clone()
+        correct = model_out.clone()
+
+        for idx in range(self.autoregression_steps):
+            if self.offset + idx >= len(self.dataset):
+                model_minus_correct[:, idx:] = 0
+                correct[:, idx:] = 0
+                break
+            model_minus_correct[:, idx] -= self.dataset[self.offset + idx][-1]
+            correct[:, idx] = self.dataset[self.offset + idx][-1]
+
+        self.dataset.denormalize(model_out)
+        self.dataset.denormalize(model_minus_correct)
+
+        self.create_videos(model_out, model_minus_correct)
+        self.create_temp_curve(model_out, correct)
+
+    def create_temp_curve(self, model_out, correct):
+        if not (TASK_ID == 36 or TASK_ID == -1):
+            return
+        temp_variable_idx = 4
+        (lat_start, lat_end), (
+            lon_start,
+            lon_end,
+        ) = ModelEvaluator.get_slice_for_lat_lon(-180, 180, 30, 60, model_out.shape)
+        x = np.arange(model_out.shape[1])
+        pred = (
+            model_out[
+                0,
+                :,
+                temp_variable_idx,
+                lat_start : lat_end + 1,
+                lon_start : lon_end + 1,
+            ]
+            .mean(axis=(-1, -2))
+            .numpy()
+        )
+        corr = (
+            correct[
+                0,
+                :,
+                temp_variable_idx,
+                lat_start : lat_end + 1,
+                lon_start : lon_end + 1,
+            ]
+            .mean(axis=(-1, -2))
+            .numpy()
+        )
+
+        plt.figure(figsize=(40, 12))
+        plt.plot(x, pred, label="Prediction")
+        plt.plot(x, corr, label="Ground Truth")
+        plt.savefig(os.path.join(self.output_path, "temp_curve.png"))
+
+    def get_model_out(self) -> torch.Tensor:
+        if os.path.exists(self.tensor_path):
+            model_out = torch.load(self.tensor_path, map_location=torch.device("cpu"))
+        else:
+            model_input: torch.Tensor = self.dataset[self.offset]
+            model_input = model_input.unsqueeze(0)
+            model_input = model_input.to(self.model.device)
+            model_out = self.model(model_input, None).cpu()
+            torch.save(model_out, self.tensor_path)
+
+        return model_out
+
 
 if __name__ == "__main__":
     model_path = os.environ["MODEL_FILE"]
@@ -146,6 +265,9 @@ if __name__ == "__main__":
     output_path = os.environ["OUTPUT_PATH"]
     fps = int(os.environ["FPS"])
     frame_size = eval(os.environ["FRAME_SIZE"])
+    only_create_tensor = (
+        os.environ.get("ONLY_CREATE_TENSORS", "False").lower() == "true"
+    )
 
     dataset = FuXiDataset(data_path, mean_data_path)
 
@@ -157,5 +279,6 @@ if __name__ == "__main__":
         output_path,
         fps=fps,
         frame_size=frame_size,
+        only_create_model_output=only_create_tensor,
     )
     model_evaluator.evaluate()

@@ -186,7 +186,7 @@ class ModelEvaluator:
             return
 
         if TASK_ID != -1:
-            model_out = model_out[:, :, TASK_ID, :, :]
+            model_out = model_out[:, :, int(TASK_ID), :, :]
             model_out = model_out.unsqueeze(2)
 
         # bs x auto_step x var x lat x lon

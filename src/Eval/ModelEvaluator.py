@@ -18,7 +18,7 @@ from src.Dataset.dimensions import LEVEL_VARIABLES, SURFACE_VARIABLES
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
 TASK_ID = os.environ.get("SLURM_ARRAY_TASK_ID", -1)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -143,12 +143,8 @@ class ModelEvaluator:
         return (lat_start_idx, lat_end_idx), (lon_start_idx, lon_end_idx)
 
     def create_videos(self, model_out, model_minus_correct):
-        start = TASK_ID
-        end = TASK_ID + 1
-        if TASK_ID == -1:
-            start = 0
-            vars = 35
-        for var_idx in range(start, end):
+        for variable in range(model_out.shape[2]):
+            var_idx = variable if TASK_ID == -1 else 0
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
             diff_path = os.path.join(self.output_path, f"diff_{name}_{level}.mp4")
@@ -188,6 +184,11 @@ class ModelEvaluator:
         model_out = self.get_model_out()
         if self.only_create_model_output:
             return
+
+        if TASK_ID != -1:
+            model_out = model_out[:, :, TASK_ID, :, :]
+            model_out = model_out.unsqueeze(2)
+
         # bs x auto_step x var x lat x lon
         model_minus_correct = model_out.clone()
         correct = model_out.clone()
@@ -205,11 +206,13 @@ class ModelEvaluator:
 
         self.create_videos(model_out, model_minus_correct)
         self.create_temp_curve(model_out, correct)
+        self.create_el_nino_curve(model_out, correct)
 
     def create_temp_curve(self, model_out, correct):
-        if not (TASK_ID == 36 or TASK_ID == -1):
+        if not (TASK_ID == 4 or TASK_ID == -1):
             return
-        temp_variable_idx = 4
+
+        temp_variable_idx = 4 if TASK_ID == -1 else 0
         (lat_start, lat_end), (
             lon_start,
             lon_end,
@@ -244,7 +247,7 @@ class ModelEvaluator:
         plt.savefig(os.path.join(self.output_path, "temp_curve.png"))
 
     def get_model_out(self) -> torch.Tensor:
-        if os.path.exists(self.tensor_path):
+        if os.path.exists(self.tensor_path) and self.load_tensor_if_available:
             model_out = torch.load(self.tensor_path, map_location=torch.device("cpu"))
         else:
             model_input: torch.Tensor = self.dataset[self.offset]
@@ -254,6 +257,86 @@ class ModelEvaluator:
             torch.save(model_out, self.tensor_path)
 
         return model_out
+
+    @staticmethod
+    def calculate_area_weights(latitudes):
+        """
+        Berechnet die Flächengewichte (areacello) basierend auf den Breitengraden.
+        Die Fläche einer Zelle wird angenähert durch den Kosinus des Breitengrads.
+
+        Parameters:
+        latitudes (np.array): Ein Array von Breitengraden (in Grad), für die die Flächengewichte berechnet werden sollen.
+
+        Returns:
+        np.array: Ein 1D-Array von Flächengewichten.
+        """
+        # Konvertiere die Breitengrade in Radians
+        lat_radians = np.radians(latitudes)
+        # Kosinus des Breitengrads wird als Gewichte verwendet
+        area_weights = np.cos(lat_radians)
+        return area_weights
+
+    def create_el_nino_curve(self, model_out, correct):
+        if not (TASK_ID == 5 or TASK_ID == -1):
+            return
+        sst_idx = 5 if TASK_ID == -1 else 0
+
+        (lat_start, lat_end), (
+            lon_start,
+            lon_end,
+        ) = ModelEvaluator.get_slice_for_lat_lon(-5, 5, 190, 240, model_out.shape)
+        pred = model_out[
+            0,
+            :,
+            sst_idx,
+            lat_start : lat_end + 1,
+            lon_start : lon_end + 1,
+        ].numpy()
+        corr = correct[
+            0,
+            :,
+            sst_idx,
+            lat_start : lat_end + 1,
+            lon_start : lon_end + 1,
+        ].numpy()
+        lats = np.linspace(
+            -5, 5, lat_end - lat_start + 1
+        )  # Breitengrade in der NINO 3.4 Region
+        lons = np.linspace(
+            -170, -120, lon_end - lon_start + 1
+        )  # Längengrade in der NINO 3.4 Region
+        area_weights = ModelEvaluator.calculate_area_weights(lats)
+        area_weights_2d = np.tile(area_weights[:, np.newaxis], (1, len(lons)))
+
+        tos_nino34_anom = pred - pred.mean(axis=0)
+
+        weighted_anom_pred = np.average(
+            tos_nino34_anom, weights=area_weights_2d, axis=(1, 2)
+        )
+        weighted_anom_corr = np.average(
+            corr - corr.mean(axis=0), weights=area_weights_2d, axis=(1, 2)
+        )
+
+        x = np.arange(pred.shape[0])  # Zeitachse
+        plt.figure(figsize=(12, 6))
+        plt.plot(
+            x,
+            weighted_anom_pred,
+            label="Weighted SST Anomaly Prediction (NINO 3.4)",
+            color="r",
+        )
+        plt.plot(
+            x,
+            weighted_anom_corr,
+            label="Weighted SST Anomaly Ground Truth (NINO 3.4)",
+            color="b",
+        )
+        plt.axhline(0, color="black", linestyle="--")
+        plt.title("SST Anomalies in the NINO 3.4 Region (El Niño/La Niña Indicator)")
+        plt.xlabel("Time Steps")
+        plt.ylabel("SST Anomaly (°C)")
+        plt.legend()
+        plt.savefig(os.path.join(self.output_path, "el_nino_curve.png"))
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@
 #SBATCH --time=12:00:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log
 #SBATCH --error=logs/%j.err          # Error Log
-#SBATCH --qos=gp_ehpc                # Quality of Service
+#SBATCH --qos=acc_ehpc                # Quality of Service
 #SBATCH --account=ehpc03             # Slurm Konto
 
 # Laden der Module und Umgebungsvariablen

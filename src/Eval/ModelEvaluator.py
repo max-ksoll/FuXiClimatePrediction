@@ -198,8 +198,12 @@ class ModelEvaluator:
                 model_minus_correct[:, idx:] = 0
                 correct[:, idx:] = 0
                 break
-            model_minus_correct[:, idx] -= self.dataset[self.offset + idx][-1]
-            correct[:, idx] = self.dataset[self.offset + idx][-1]
+            value = self.dataset[self.offset + idx][-1]
+            if TASK_ID != -1:
+                value = value[:, :, int(TASK_ID), :, :]
+                value = value.unsqueeze(2)
+            model_minus_correct[:, idx] -= value
+            correct[:, idx] = value
 
         self.dataset.denormalize(model_out)
         self.dataset.denormalize(model_minus_correct)

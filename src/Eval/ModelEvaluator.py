@@ -205,8 +205,8 @@ class ModelEvaluator:
             model_minus_correct[:, idx] -= value
             correct[:, idx] = value
 
-        self.dataset.denormalize(model_out)
-        self.dataset.denormalize(model_minus_correct)
+        model_out = self.dataset.denormalize(model_out)
+        model_minus_correct = self.dataset.denormalize(model_minus_correct)
 
         self.create_videos(model_out, model_minus_correct)
         self.create_temp_curve(model_out, correct)

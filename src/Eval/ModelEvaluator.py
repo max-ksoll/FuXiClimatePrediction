@@ -201,7 +201,7 @@ class ModelEvaluator:
             value = self.dataset[self.offset + idx][-1]
             if TASK_ID != -1:
                 value = value[int(TASK_ID), :, :]
-                value = value.unsqueeze(2)
+                value = value.unsqueeze(0)
             model_minus_correct[:, idx] -= value
             correct[:, idx] = value
 

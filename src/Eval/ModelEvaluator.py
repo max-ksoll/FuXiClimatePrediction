@@ -144,7 +144,8 @@ class ModelEvaluator:
 
     def create_videos(self, model_out, model_minus_correct):
         for variable in range(model_out.shape[2]):
-            var_idx = variable if TASK_ID == -1 else 0
+            tensor_idx = variable if TASK_ID == -1 else 0
+            var_idx = variable if TASK_ID == -1 else TASK_ID
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
             diff_path = os.path.join(self.output_path, f"diff_{name}_{level}.mp4")
@@ -156,23 +157,23 @@ class ModelEvaluator:
             )
 
             out_min, out_max = (
-                model_out[:, :, var_idx].min(),
-                model_out[:, :, var_idx].max(),
+                model_out[:, :, tensor_idx].min(),
+                model_out[:, :, tensor_idx].max(),
             )
             diff_out_min, diff_out_max = (
-                model_minus_correct[:, :, var_idx].min(),
-                model_minus_correct[:, :, var_idx].max(),
+                model_minus_correct[:, :, tensor_idx].min(),
+                model_minus_correct[:, :, tensor_idx].max(),
             )
 
             for step in range(self.autoregression_steps):
                 img = ModelEvaluator.plot_data(
-                    model_out, var_idx, step, out_min, out_max
+                    model_out, tensor_idx, step, out_min, out_max
                 )
                 bild_resized = cv2.resize(img, self.frame_size)
                 out.write(bild_resized)
 
                 img = ModelEvaluator.plot_data(
-                    model_minus_correct, var_idx, step, diff_out_min, diff_out_max
+                    model_minus_correct, tensor_idx, step, diff_out_min, diff_out_max
                 )
                 bild_resized = cv2.resize(img, self.frame_size)
                 diff_out.write(bild_resized)

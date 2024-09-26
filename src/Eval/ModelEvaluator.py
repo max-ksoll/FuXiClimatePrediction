@@ -17,7 +17,7 @@ from src.PyModel.fuxi_ligthning import FuXi
 from src.Dataset.dimensions import LEVEL_VARIABLES, SURFACE_VARIABLES
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
-TASK_ID = os.environ.get("SLURM_ARRAY_TASK_ID", -1)
+TASK_ID = int(os.environ.get("SLURM_ARRAY_TASK_ID", -1))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -187,7 +187,7 @@ class ModelEvaluator:
             return
 
         if TASK_ID != -1:
-            model_out = model_out[:, :, int(TASK_ID), :, :]
+            model_out = model_out[:, :, TASK_ID, :, :]
             model_out = model_out.unsqueeze(2)
 
         # bs x auto_step x var x lat x lon
@@ -201,7 +201,7 @@ class ModelEvaluator:
                 break
             value = self.dataset[self.offset + idx][-1]
             if TASK_ID != -1:
-                value = value[int(TASK_ID), :, :]
+                value = value[TASK_ID, :, :]
                 value = value.unsqueeze(0)
             model_minus_correct[:, idx] -= value
             correct[:, idx] = value

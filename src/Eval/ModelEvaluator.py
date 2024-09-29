@@ -68,38 +68,6 @@ class ModelEvaluator:
         return variables[0].unit
 
     @staticmethod
-    def plot_data(data, var_idx, time_idx, d_min, d_max):
-        data = data[0, time_idx, var_idx]
-        fig, ax = plt.subplots(
-            figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
-        )
-        ax.coastlines()
-        lons = np.linspace(-180, 180, data.shape[1])
-        lats = np.linspace(-90, 90, data.shape[0])
-        im = ax.pcolormesh(
-            lons,
-            lats,
-            data,
-            transform=ccrs.PlateCarree(),
-            shading="auto",
-            vmin=d_min,
-            vmax=d_max,
-        )
-
-        name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
-
-        clb = plt.colorbar(im, ax=ax, orientation="vertical")
-        clb.ax.set_ylabel(f"{ModelEvaluator.get_unit_for_var_name(name)}", rotation=270)
-
-        ax.set_title(f"Var: {name} at Level: {level} at Time idx: {time_idx + 1}")
-        fig.canvas.draw()
-        data = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
-        data = data.reshape(fig.canvas.get_width_height()[::-1] + (4,))
-        data = cv2.cvtColor(data, cv2.COLOR_RGBA2BGR)
-        plt.close(fig)
-        return data
-
-    @staticmethod
     def get_slice_for_lat_lon(
         lat_start: float, lat_end: float, lon_start: float, lon_end: float, tensor_shape
     ):
@@ -149,6 +117,13 @@ class ModelEvaluator:
 
         return (lat_start_idx, lat_end_idx), (lon_start_idx, lon_end_idx)
 
+    @staticmethod
+    @lru_cache
+    def get_cmap_for_var_name(var_name):
+        variables = LEVEL_VARIABLES + SURFACE_VARIABLES
+        variables = list(filter(lambda x: x.name == var_name, variables))
+        return variables[0].cmap
+
     def create_videos(self, model_out, model_minus_correct):
         lons = np.linspace(-180, 180, model_out.shape[-1])
         lats = np.linspace(-90, 90, model_out.shape[-2])
@@ -197,6 +172,7 @@ class ModelEvaluator:
                     shading="auto",
                     vmin=out_min,
                     vmax=out_max,
+                    cmap=ModelEvaluator.get_cmap_for_var_name(name),
                 )
                 if clb is None:
                     clb = plt.colorbar(im, ax=ax, orientation="vertical")
@@ -214,7 +190,7 @@ class ModelEvaluator:
             plt.close(fig)
 
             fig, ax = plt.subplots(
-                figsize=(6, 4), subplot_kw={"projection": ccrs.PlateCarree()}
+                figsize=(10, 6), subplot_kw={"projection": ccrs.PlateCarree()}
             )
             ax.coastlines()
             clb = None
@@ -232,6 +208,7 @@ class ModelEvaluator:
                     shading="auto",
                     vmin=diff_out_min,
                     vmax=diff_out_max,
+                    cmap="coolwarm",
                 )
                 if clb is None:
                     clb = plt.colorbar(im, ax=ax, orientation="vertical")
@@ -343,12 +320,9 @@ class ModelEvaluator:
                 if self.offset + idx >= len(self.dataset):
                     model_minus_correct[:, idx:] = 0
                     break
-                value = self.dataset[self.offset + idx][-1]
+                value = self.dataset.denormalize(self.dataset[self.offset + idx][-1])
                 model_minus_correct[:, idx] -= value
                 correct[:, idx] = value
-
-            model_minus_correct = self.dataset.denormalize(model_minus_correct)
-            correct = self.dataset.denormalize(correct)
 
             torch.save(model_minus_correct, self.tensor_model_minus_correct_path)
             torch.save(correct, self.tensor_gt_path)

@@ -143,6 +143,9 @@ class ModelEvaluator:
         return (lat_start_idx, lat_end_idx), (lon_start_idx, lon_end_idx)
 
     def create_videos(self, model_out, model_minus_correct):
+        lons = np.linspace(-180, 180, model_out.shape[-1])
+        lats = np.linspace(-90, 90, model_out.shape[-2])
+
         for variable in range(model_out.shape[2]):
             tensor_idx = variable if TASK_ID == -1 else 0
             var_idx = variable if TASK_ID == -1 else TASK_ID
@@ -165,20 +168,76 @@ class ModelEvaluator:
                 model_minus_correct[:, :, tensor_idx].max(),
             )
 
+            # Verarbeitung der Originaldaten
+            fig, ax = plt.subplots(
+                figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
+            )
+            ax.coastlines()
+            clb = None
+            im = None
+
             for step in range(self.autoregression_steps):
-                img = ModelEvaluator.plot_data(
-                    model_out, tensor_idx, step, out_min, out_max
+                if im:
+                    im.remove()
+                data = model_out[0, step, tensor_idx]
+                im = ax.pcolormesh(
+                    lons,
+                    lats,
+                    data,
+                    transform=ccrs.PlateCarree(),
+                    shading="auto",
+                    vmin=out_min,
+                    vmax=out_max,
                 )
+                if clb is None:
+                    clb = plt.colorbar(im, ax=ax, orientation="vertical")
+                    clb.ax.set_ylabel(
+                        f"{ModelEvaluator.get_unit_for_var_name(name)}", rotation=270
+                    )
+                ax.set_title(f"Var: {name} at Level: {level} at Time idx: {step + 1}")
+                fig.canvas.draw()
+                img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
                 bild_resized = cv2.resize(img, self.frame_size)
                 out.write(bild_resized)
+            out.release()
+            plt.close(fig)
 
-                img = ModelEvaluator.plot_data(
-                    model_minus_correct, tensor_idx, step, diff_out_min, diff_out_max
+            fig, ax = plt.subplots(
+                figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
+            )
+            ax.coastlines()
+            clb = None
+            im = None
+
+            for step in range(self.autoregression_steps):
+                if im:
+                    im.remove()
+                data = model_minus_correct[0, step, tensor_idx]
+                im = ax.pcolormesh(
+                    lons,
+                    lats,
+                    data,
+                    transform=ccrs.PlateCarree(),
+                    shading="auto",
+                    vmin=diff_out_min,
+                    vmax=diff_out_max,
                 )
+                if clb is None:
+                    clb = plt.colorbar(im, ax=ax, orientation="vertical")
+                    clb.ax.set_ylabel(
+                        f"{ModelEvaluator.get_unit_for_var_name(name)}", rotation=270
+                    )
+                ax.set_title(
+                    f"Diff Var: {name} at Level: {level} at Time idx: {step + 1}"
+                )
+                fig.canvas.draw()
+                img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
                 bild_resized = cv2.resize(img, self.frame_size)
                 diff_out.write(bild_resized)
-            out.release()
             diff_out.release()
+            plt.close(fig)
 
     @torch.no_grad()
     def evaluate(self):

@@ -319,7 +319,7 @@ class ModelEvaluator:
             logger.info("Inferring...")
             model_input: torch.Tensor = self.dataset[self.offset]
             model_input = model_input.unsqueeze(0)
-            model_input = model_input.to(self.model.device)
+            model_input = model_input.to(model.device)
             model_out = model(model_input, None).cpu()
             logger.info("Saving Tensor for later use")
             model_out = self.dataset.denormalize(model_out)

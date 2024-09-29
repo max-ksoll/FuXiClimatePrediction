@@ -208,7 +208,7 @@ class ModelEvaluator:
                     shading="auto",
                     vmin=diff_out_min,
                     vmax=diff_out_max,
-                    cmap="coolwarm",
+                    cmap="RdBu",
                 )
                 if clb is None:
                     clb = plt.colorbar(im, ax=ax, orientation="vertical")

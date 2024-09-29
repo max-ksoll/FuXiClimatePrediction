@@ -101,13 +101,18 @@ U_WIND_10M = Variable(
     "10m_u_component_of_wind", True, "v10", VariableType.ERA_SURFACE, "m/s", "Spectral"
 )
 SURFACE_TEMP = Variable(
-    "2m_temperature", True, "t2m", VariableType.ERA_SURFACE, "K", "coolwarm"
+    "2m_temperature", True, "t2m", VariableType.ERA_SURFACE, "K", "coolwarm_r"
 )
 SEA_SURFACE_TEMP = Variable(
-    "sea_surface_temperature", True, "sst", VariableType.ERA_SURFACE, "K", "coolwarm"
+    "sea_surface_temperature", True, "sst", VariableType.ERA_SURFACE, "K", "coolwarm_r"
 )
 SOIL_TEMP_LV1 = Variable(
-    "soil_temperature_level_1", True, "stl1", VariableType.ERA_SURFACE, "K", "coolwarm"
+    "soil_temperature_level_1",
+    True,
+    "stl1",
+    VariableType.ERA_SURFACE,
+    "K",
+    "coolwarm_r",
 )
 HEAT_FLUX = Variable(
     "surface_latent_heat_flux",
@@ -136,7 +141,7 @@ V_WIND = Variable(
 U_WIND = Variable(
     "u_component_of_wind", False, "u", VariableType.ERA_ATMOS, "m/s", "Spectral"
 )
-TEMP = Variable("temperature", False, "t", VariableType.ERA_ATMOS, "K", "coolwarm")
+TEMP = Variable("temperature", False, "t", VariableType.ERA_ATMOS, "K", "coolwarm_r")
 HUMIDITY = Variable(
     "specific_humidity", False, "z", VariableType.ERA_ATMOS, "kg/kg", "blues"
 )

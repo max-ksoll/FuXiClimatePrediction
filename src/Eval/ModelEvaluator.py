@@ -3,6 +3,8 @@ import os
 import sys
 from functools import lru_cache
 
+from tqdm import tqdm
+
 sys.path.append(os.environ["MODULE_PATH"])
 
 import cv2
@@ -176,7 +178,7 @@ class ModelEvaluator:
             clb = None
             im = None
 
-            for step in range(self.autoregression_steps):
+            for step in tqdm(range(self.autoregression_steps), desc="Model Out"):
                 if im:
                     im.remove()
                 data = model_out[0, step, tensor_idx]
@@ -210,7 +212,7 @@ class ModelEvaluator:
             clb = None
             im = None
 
-            for step in range(self.autoregression_steps):
+            for step in tqdm(range(self.autoregression_steps), desc="Difference"):
                 if im:
                     im.remove()
                 data = model_minus_correct[0, step, tensor_idx]

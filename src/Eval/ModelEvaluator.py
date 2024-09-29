@@ -419,9 +419,7 @@ if __name__ == "__main__":
     output_path = os.environ["OUTPUT_PATH"]
     fps = int(os.environ["FPS"])
     frame_size = eval(os.environ["FRAME_SIZE"])
-    only_create_tensor = (
-        os.environ.get("ONLY_CREATE_TENSORS", "False").lower() == "true"
-    )
+    only_create_tensor = os.environ.get("ONLY_CREATE_TENSOR", "False").lower() == "true"
 
     dataset = FuXiDataset(data_path, mean_data_path)
 

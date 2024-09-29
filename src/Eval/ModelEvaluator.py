@@ -172,7 +172,7 @@ class ModelEvaluator:
 
             # Verarbeitung der Originaldaten
             fig, ax = plt.subplots(
-                figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
+                figsize=(6, 4), subplot_kw={"projection": ccrs.PlateCarree()}
             )
             ax.coastlines()
             clb = None
@@ -198,15 +198,16 @@ class ModelEvaluator:
                     )
                 ax.set_title(f"Var: {name} at Level: {level} at Time idx: {step + 1}")
                 fig.canvas.draw()
-                img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                img = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+                img = img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+                img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
                 bild_resized = cv2.resize(img, self.frame_size)
                 out.write(bild_resized)
             out.release()
             plt.close(fig)
 
             fig, ax = plt.subplots(
-                figsize=(12, 8), subplot_kw={"projection": ccrs.PlateCarree()}
+                figsize=(6, 4), subplot_kw={"projection": ccrs.PlateCarree()}
             )
             ax.coastlines()
             clb = None
@@ -234,8 +235,9 @@ class ModelEvaluator:
                     f"Diff Var: {name} at Level: {level} at Time idx: {step + 1}"
                 )
                 fig.canvas.draw()
-                img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                img = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+                img = img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+                img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
                 bild_resized = cv2.resize(img, self.frame_size)
                 diff_out.write(bild_resized)
             diff_out.release()

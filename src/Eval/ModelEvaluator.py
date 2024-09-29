@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from functools import lru_cache
+from typing import Tuple
 
 from tqdm import tqdm
 
@@ -37,10 +38,7 @@ class ModelEvaluator:
         load_tensor_if_available=True,
         only_create_model_output=False,
     ):
-        self.model = FuXi.load_from_checkpoint(model_path)
-        self.model.eval()
         self.autoregression_steps = autoregression_steps
-        self.model.autoregression_steps = self.autoregression_steps + 2
         self.output_path = output_path
         self.fps = fps
         self.frame_size = frame_size
@@ -50,8 +48,15 @@ class ModelEvaluator:
         self.dataset = dataset
         self.load_tensor_if_available = load_tensor_if_available
         model = model_path.split("/")[-1]
-        self.tensor_path = os.path.join(
-            output_path, f"{model}_{start_offset}_{autoregression_steps}.pt"
+        self.tensor_model_out_path = os.path.join(
+            output_path, f"{model}_out_{start_offset}_{autoregression_steps}.pt"
+        )
+        self.tensor_model_minus_correct_path = os.path.join(
+            output_path,
+            f"{model}_minus_correct_{start_offset}_{autoregression_steps}.pt",
+        )
+        self.tensor_gt_path = os.path.join(
+            output_path, f"gt_{start_offset}_{autoregression_steps}.pt"
         )
         self.only_create_model_output = only_create_model_output
 
@@ -149,8 +154,10 @@ class ModelEvaluator:
         lats = np.linspace(-90, 90, model_out.shape[-2])
 
         for variable in range(model_out.shape[2]):
+
             tensor_idx = variable if TASK_ID == -1 else 0
             var_idx = variable if TASK_ID == -1 else TASK_ID
+
             name, level = FuXiDataset.get_var_name_and_level_at_idx(var_idx)
             path = os.path.join(self.output_path, f"{name}_{level}.mp4")
             diff_path = os.path.join(self.output_path, f"diff_{name}_{level}.mp4")
@@ -172,7 +179,7 @@ class ModelEvaluator:
 
             # Verarbeitung der Originaldaten
             fig, ax = plt.subplots(
-                figsize=(6, 4), subplot_kw={"projection": ccrs.PlateCarree()}
+                figsize=(10, 6), subplot_kw={"projection": ccrs.PlateCarree()}
             )
             ax.coastlines()
             clb = None
@@ -245,33 +252,16 @@ class ModelEvaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        model_out = self.get_model_out()
+        model_out, model_minus_correct, correct = self.get_tensors()
         if self.only_create_model_output:
+            logger.info("Should only create Tensor... - Done")
             return
 
-        if TASK_ID != -1:
-            model_out = model_out[:, :, TASK_ID, :, :]
-            model_out = model_out.unsqueeze(2)
-
         # bs x auto_step x var x lat x lon
-        model_minus_correct = model_out.clone()
-        correct = model_out.clone()
-
-        for idx in range(self.autoregression_steps):
-            if self.offset + idx >= len(self.dataset):
-                model_minus_correct[:, idx:] = 0
-                correct[:, idx:] = 0
-                break
-            value = self.dataset[self.offset + idx][-1]
-            if TASK_ID != -1:
-                value = value[TASK_ID, :, :]
-                value = value.unsqueeze(0)
-            model_minus_correct[:, idx] -= value
-            correct[:, idx] = value
-
-        denorm_idx = None if TASK_ID == -1 else TASK_ID
-        model_out = self.dataset.denormalize(model_out, denorm_idx)
-        model_minus_correct = self.dataset.denormalize(model_minus_correct, denorm_idx)
+        if TASK_ID != -1:
+            model_out = model_out[:, :, TASK_ID, :, :].unsqueeze(2)
+            model_minus_correct = model_minus_correct[:, :, TASK_ID, :, :].unsqueeze(2)
+            correct = correct[:, :, TASK_ID, :, :].unsqueeze(2)
 
         self.create_videos(model_out, model_minus_correct)
         self.create_temp_curve(model_out, correct)
@@ -315,17 +305,55 @@ class ModelEvaluator:
         plt.plot(x, corr, label="Ground Truth")
         plt.savefig(os.path.join(self.output_path, "temp_curve.png"))
 
-    def get_model_out(self) -> torch.Tensor:
-        if os.path.exists(self.tensor_path) and self.load_tensor_if_available:
-            model_out = torch.load(self.tensor_path, map_location=torch.device("cpu"))
+    def get_tensors(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if os.path.exists(self.tensor_model_out_path) and self.load_tensor_if_available:
+            logger.info("Loading pre created Tensor")
+            model_out = torch.load(
+                self.tensor_model_out_path, map_location=torch.device("cpu")
+            )
         else:
+            logger.info("Loading Model")
+            model = FuXi.load_from_checkpoint(model_path)
+            model.eval()
+            model.autoregression_steps = self.autoregression_steps + 2
+            logger.info("Inferring...")
             model_input: torch.Tensor = self.dataset[self.offset]
             model_input = model_input.unsqueeze(0)
             model_input = model_input.to(self.model.device)
-            model_out = self.model(model_input, None).cpu()
-            torch.save(model_out, self.tensor_path)
+            model_out = model(model_input, None).cpu()
+            logger.info("Saving Tensor for later use")
+            model_out = self.dataset.denormalize(model_out)
+            torch.save(model_out, self.tensor_model_out_path)
 
-        return model_out
+        if (
+            os.path.exists(self.tensor_model_minus_correct_path)
+            and os.path.exists(self.tensor_gt_path)
+            and self.load_tensor_if_available
+        ):
+            logger.info("Loading pre created Tensor")
+            model_minus_correct = torch.load(
+                self.tensor_model_minus_correct_path, map_location=torch.device("cpu")
+            )
+            correct = torch.load(self.tensor_gt_path, map_location=torch.device("cpu"))
+        else:
+            model_minus_correct = model_out.clone()
+            correct = torch.zeros_like(model_out)
+
+            for idx in range(self.autoregression_steps):
+                if self.offset + idx >= len(self.dataset):
+                    model_minus_correct[:, idx:] = 0
+                    break
+                value = self.dataset[self.offset + idx][-1]
+                model_minus_correct[:, idx] -= value
+                correct[:, idx] = value
+
+            model_minus_correct = self.dataset.denormalize(model_minus_correct)
+            correct = self.dataset.denormalize(correct)
+
+            torch.save(model_minus_correct, self.tensor_model_minus_correct_path)
+            torch.save(correct, self.tensor_gt_path)
+
+        return model_out, model_minus_correct, correct
 
     @staticmethod
     def calculate_area_weights(latitudes):

@@ -26,6 +26,6 @@ export AUTOREGRESSION_STEPS="612"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/videos"
 export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction"
 export FPS="20"
-export FRAME_SIZE="(600, 400)"
+export FRAME_SIZE="(1000, 600)"
 
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/src/Eval/ModelEvaluator.py

@@ -151,12 +151,8 @@ class FuXiDataset(Dataset):
         # TODO Normalisierung sollte wahrscheinlich immer über den selben means file sein
         return (inp - self.min) / self.max_minus_min
 
-    def denormalize(self, out, idx=None) -> torch.Tensor:
+    def denormalize(self, out) -> torch.Tensor:
         logger.debug(f"Normalizing Data")
-        if idx is not None:
-            return out * self.max_minus_min[idx].unsqueeze(0) + self.min[idx].unsqueeze(
-                0
-            )
         return out * self.max_minus_min + self.min
 
 

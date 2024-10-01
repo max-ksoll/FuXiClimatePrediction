@@ -365,7 +365,7 @@ class ModelEvaluator:
         ].numpy()
         corr = correct[
             0,
-            :,
+            : len(self.dataset) - self.offset,
             sst_idx,
             lat_start : lat_end + 1,
             lon_start : lon_end + 1,
@@ -405,6 +405,7 @@ class ModelEvaluator:
             label="Weighted SST Anomaly Prediction (NINO 3.4)",
             color="r",
         )
+        x = np.arange(corr.shape[0])
         plt.plot(
             x,
             weighted_anom_corr,

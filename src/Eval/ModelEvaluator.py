@@ -377,15 +377,15 @@ class ModelEvaluator:
             -170, -120, lon_end - lon_start + 1
         )  # Längengrade in der NINO 3.4 Region
         area_weights = ModelEvaluator.calculate_area_weights(lats)
-        area_weights_2d = np.tile(area_weights[:, np.newaxis], (1, len(lons)))
+        # area_weights_2d = np.tile(area_weights[:, np.newaxis], (1, len(lons)))
 
         tos_nino34_anom = pred - pred.mean(axis=0)
 
         weighted_anom_pred = np.average(
-            tos_nino34_anom, weights=area_weights_2d, axis=(1, 2)
+            tos_nino34_anom, weights=area_weights, axis=(1, 2)
         )
         weighted_anom_corr = np.average(
-            corr - corr.mean(axis=0), weights=area_weights_2d, axis=(1, 2)
+            corr - corr.mean(axis=0), weights=area_weights, axis=(1, 2)
         )
 
         x = np.arange(pred.shape[0])  # Zeitachse

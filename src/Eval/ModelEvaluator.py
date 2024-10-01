@@ -240,8 +240,8 @@ class ModelEvaluator:
             model_minus_correct = model_minus_correct[:, :, TASK_ID, :, :].unsqueeze(2)
             correct = correct[:, :, TASK_ID, :, :].unsqueeze(2)
 
-        self.create_videos(model_out, model_minus_correct)
-        self.create_temp_curve(model_out, correct)
+        # self.create_videos(model_out, model_minus_correct)
+        # self.create_temp_curve(model_out, correct)
         self.create_el_nino_curve(model_out, correct)
 
     def create_temp_curve(self, model_out, correct):
@@ -381,12 +381,21 @@ class ModelEvaluator:
 
         tos_nino34_anom = pred - pred.mean(axis=0)
 
-        weighted_anom_pred = np.average(
-            tos_nino34_anom, weights=area_weights, axis=(1, 2)
-        )
-        weighted_anom_corr = np.average(
-            corr - corr.mean(axis=0), weights=area_weights, axis=(1, 2)
-        )
+        # Beispielhafte manuelle Gewichtung
+        weighted_sum = np.sum(tos_nino34_anom * area_weights, axis=(1, 2))
+        sum_of_weights = np.sum(area_weights)
+        weighted_anom_pred = weighted_sum / sum_of_weights
+
+        # weighted_anom_pred = np.average(
+        #     tos_nino34_anom, weights=area_weights, axis=(1, 2)
+        # )
+
+        weighted_sum = np.sum(corr - corr.mean(axis=0) * area_weights, axis=(1, 2))
+        weighted_anom_corr = weighted_sum / sum_of_weights
+
+        # weighted_anom_corr = np.average(
+        #     corr - corr.mean(axis=0), weights=area_weights, axis=(1, 2)
+        # )
 
         x = np.arange(pred.shape[0])  # Zeitachse
         plt.figure(figsize=(12, 6))

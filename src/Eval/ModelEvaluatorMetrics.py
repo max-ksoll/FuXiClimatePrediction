@@ -2,19 +2,18 @@ import logging
 import os
 import sys
 
-import numpy as np
-from torch.utils.data import DataLoader
-
-from src.Dataset.dimensions import LAT
-from src.utils import get_dataloader_params, get_latitude_weights
-
 sys.path.append(os.environ["MODULE_PATH"])
 
 import torch
+import numpy as np
+from torch.utils.data import DataLoader
 import cartopy
 
+from src.Dataset.dimensions import LAT
+from src.utils import get_dataloader_params, get_latitude_weights
 from src.Dataset.fuxi_dataset import FuXiDataset
 from src.PyModel.fuxi_ligthning import FuXi
+
 
 cartopy.config["pre_existing_data_dir"] = os.environ["CARTOPY_DIR"]
 TASK_ID = int(os.environ.get("SLURM_ARRAY_TASK_ID", -1))

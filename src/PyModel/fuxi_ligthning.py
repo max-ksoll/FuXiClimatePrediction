@@ -81,6 +81,8 @@ class FuXi(L.LightningModule):
         return self
 
     def __call__(self, input, target):
+        if input.dim() == 4:
+            input = input.unsqueeze(0)
         return self.forward(input, None)
 
     def forward(self, input, target) -> torch.Tensor:

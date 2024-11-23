@@ -240,8 +240,8 @@ class ModelEvaluator:
             model_minus_correct = model_minus_correct[:, :, TASK_ID, :, :].unsqueeze(2)
             correct = correct[:, :, TASK_ID, :, :].unsqueeze(2)
 
-        # self.create_videos(model_out, model_minus_correct)
-        # self.create_temp_curve(model_out, correct)
+        self.create_videos(model_out, model_minus_correct)
+        self.create_temp_curve(model_out, correct)
         self.create_el_nino_curve(model_out, correct)
 
     def create_temp_curve(self, model_out, correct):
@@ -253,7 +253,6 @@ class ModelEvaluator:
             lon_start,
             lon_end,
         ) = ModelEvaluator.get_slice_for_lat_lon(-180, 180, 30, 60, model_out.shape)
-        x = np.arange(model_out.shape[1])
         pred = (
             model_out[
                 0,
@@ -268,7 +267,7 @@ class ModelEvaluator:
         corr = (
             correct[
                 0,
-                :,
+                : len(self.dataset) - self.offset,
                 temp_variable_idx,
                 lat_start : lat_end + 1,
                 lon_start : lon_end + 1,
@@ -278,7 +277,9 @@ class ModelEvaluator:
         )
 
         plt.figure(figsize=(40, 12))
+        x = np.arange(model_out.shape[0])
         plt.plot(x, pred, label="Prediction")
+        x = np.arange(corr.shape[0])
         plt.plot(x, corr, label="Ground Truth")
         plt.savefig(os.path.join(self.output_path, "temp_curve.png"))
 

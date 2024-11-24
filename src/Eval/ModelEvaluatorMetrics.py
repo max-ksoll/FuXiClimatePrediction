@@ -52,15 +52,13 @@ class ModelEvaluator:
         lat_weighted_rmse = []
         for x in iter(self.dataset):
             last_timestep = x[:, -1]
-            mask = ~torch.isnan(last_timestep)
 
             x = x.cuda()
             out_last_timestep = self.model(x, None)[:, -1].cpu()
             error = last_timestep - out_last_timestep
+            mask = ~torch.isnan(error)
 
             mae.append(float(torch.sum(torch.abs(error) * mask) / mask.sum()))
-            has_nan = torch.sum(torch.isnan(torch.abs(error) * mask))
-            print(has_nan)
             mse.append(float(torch.sum(torch.abs(error**2) * mask) / mask.sum()))
             rmse.append(mse[-1] ** 0.5)
 

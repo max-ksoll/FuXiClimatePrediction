@@ -36,6 +36,8 @@ class ModelEvaluator:
         self.dataset = dataset
         self.model = None
         self.load_model(model_path)
+        for name, param in self.model.named_parameters():
+            print(f"{name}: NaN in weights? {torch.isnan(param).any()}")
         self.lat_weights = get_latitude_weights(LAT)
         self.results_file_path = os.path.join(
             output_path, f"results_{self.autoregression_steps}_steps"
@@ -54,7 +56,9 @@ class ModelEvaluator:
             last_timestep = x[:, -1]
 
             x = x.cuda()
-            out_last_timestep = self.model(x, None)[:, -1].cpu()
+            model_out = self.model(x, None).cpu()
+            out_last_timestep = model_out[:, -1]
+            print(f"Model output NaN: {torch.isnan(model_out).any()}")
             error = last_timestep - out_last_timestep
 
             # Maske für alle Werte die nicht NaN sind ist True

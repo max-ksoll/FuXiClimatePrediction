@@ -36,8 +36,6 @@ class ModelEvaluator:
         self.dataset = dataset
         self.model = None
         self.load_model(model_path)
-        for name, param in self.model.named_parameters():
-            print(f"{name}: NaN in weights? {torch.isnan(param).any()}")
         self.lat_weights = get_latitude_weights(LAT)
         self.results_file_path = os.path.join(
             output_path, f"results_{self.autoregression_steps}_steps"
@@ -52,27 +50,25 @@ class ModelEvaluator:
         lat_weighted_mae = []
         lat_weighted_mse = []
         lat_weighted_rmse = []
-        for x in iter(self.dataset):
+        for idx, x in enumerate(iter(self.dataset)):
+            if idx >= 5:
+                break
             last_timestep = x[:, -1]
 
             x = x.cuda()
             model_out = self.model(x, None).cpu()
             out_last_timestep = model_out[:, -1]
-            print(f"Model output NaN: {torch.isnan(model_out).any()}")
             error = last_timestep - out_last_timestep
 
             # Maske für alle Werte die nicht NaN sind ist True
             mask = ~torch.isnan(error)
+            print(f"Mask NaN: {torch.isnan(mask).any()}")
+            print(f"Mask sum: {mask.sum()}, Mask shape: {mask.shape}")
 
             # setze alle NaN Werte auf 0
             error *= mask
             mask_sum = mask.sum()
 
-            print(f"{error[0,0,0,:10]=}")
-            print(f"{torch.abs(error)[0,0,0,:10]=}")
-            print(f"{torch.sum(torch.abs(error))=}")
-            print(f"{torch.sum(torch.abs(error)) / mask_sum=}")
-            print(f"{float(torch.sum(torch.abs(error)) / mask_sum)=}")
             mae.append(float(torch.sum(torch.abs(error)) / mask_sum))
             mse.append(float(torch.sum(torch.abs(error**2)) / mask_sum))
             rmse.append(mse[-1] ** 0.5)

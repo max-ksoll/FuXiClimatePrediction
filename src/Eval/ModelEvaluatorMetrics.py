@@ -86,7 +86,7 @@ class ModelEvaluator:
         self.write_result_to_file(results)
 
     def write_result_to_file(self, results):
-        with open(self.results_file_path, "") as f:
+        with open(self.results_file_path, "w+") as f:
             f.write(f"{self.autoregression_steps} Autoregression Steps\n")
             for key, value in results.items():
                 f.write(f"{key}: {value}\n")

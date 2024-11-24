@@ -60,15 +60,9 @@ class ModelEvaluator:
             out_last_timestep = model_out[:, -1]
 
             error = last_timestep - out_last_timestep
-            error = torch.nan_to_num(error, nan=0.0)
-            print(f"error NaN after masking: {torch.isnan(error).any()}")
-            # Maske für alle Werte die nicht NaN sind ist True
             mask = ~torch.isnan(error)
-            print(f"Mask NaN: {torch.isnan(mask).any()}")
-            print(f"Mask sum: {mask.sum()}, Mask shape: {mask.shape}")
-
-            # setze alle NaN Werte auf 0
             mask_sum = mask.sum()
+            error = torch.nan_to_num(error, nan=0.0)
 
             mae.append(float(torch.sum(torch.abs(error)) / mask_sum))
             mse.append(float(torch.sum(torch.abs(error**2)) / mask_sum))

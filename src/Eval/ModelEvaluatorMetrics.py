@@ -56,24 +56,28 @@ class ModelEvaluator:
             x = x.cuda()
             out_last_timestep = self.model(x, None)[:, -1].cpu()
             error = last_timestep - out_last_timestep
-            mask = ~torch.isnan(error)
-            print(f"mask_sum: {mask.sum()}")
-            print(f"number_elems: {mask.numel()}")
 
-            mae.append(float(torch.sum(torch.abs(error) * mask) / mask.sum()))
-            mse.append(float(torch.sum(torch.abs(error**2) * mask) / mask.sum()))
+            # Maske für alle Werte die nicht NaN sind ist True
+            mask = ~torch.isnan(error)
+
+            # setze alle NaN Werte auf 0
+            error *= mask
+            mask_sum = mask.sum()
+
+            print(f"{error[0,0,0,:10]=}")
+            print(f"{torch.abs(error)[0,0,0,:10]=}")
+            print(f"{torch.sum(torch.abs(error))=}")
+            print(f"{torch.sum(torch.abs(error)) / mask_sum=}")
+            print(f"{float(torch.sum(torch.abs(error)) / mask_sum)=}")
+            mae.append(float(torch.sum(torch.abs(error)) / mask_sum))
+            mse.append(float(torch.sum(torch.abs(error**2)) / mask_sum))
             rmse.append(mse[-1] ** 0.5)
 
             lat_weighted_mae.append(
-                float(
-                    torch.sum(torch.abs(error) * self.lat_weights * mask) / mask.sum()
-                )
+                float(torch.sum(torch.abs(error) * self.lat_weights) / mask_sum)
             )
             lat_weighted_mse.append(
-                float(
-                    torch.sum(torch.abs(error**2) * self.lat_weights * mask)
-                    / mask.sum()
-                )
+                float(torch.sum(torch.abs(error**2) * self.lat_weights) / mask_sum)
             )
             lat_weighted_rmse.append(lat_weighted_mse[-1] ** 0.5)
 

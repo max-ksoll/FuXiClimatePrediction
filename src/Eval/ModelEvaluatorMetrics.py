@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 import sys
@@ -38,21 +39,17 @@ class ModelEvaluator:
         self.load_model(model_path)
         self.lat_weights = get_latitude_weights(LAT)
         self.results_file_path = os.path.join(
-            output_path, f"results_{self.autoregression_steps}_steps"
+            output_path, f"results_{self.autoregression_steps}_steps.csv"
         )
 
     @torch.no_grad()
     def evaluate(self):
         mae = []
         mse = []
-        rmse = []
 
         lat_weighted_mae = []
         lat_weighted_mse = []
-        lat_weighted_rmse = []
-        for idx, x in enumerate(iter(self.dataset)):
-            if idx >= 5:
-                break
+        for x in iter(self.dataset):
             last_timestep = x[:, -1]
 
             x = x.cuda()
@@ -61,36 +58,67 @@ class ModelEvaluator:
 
             error = last_timestep - out_last_timestep
             mask = ~torch.isnan(error)
-            mask_sum = mask.sum()
+            mask_sum = mask.sum(dim=[1, 2, 3])
             error = torch.nan_to_num(error, nan=0.0)
 
-            mae.append(float(torch.sum(torch.abs(error)) / mask_sum))
-            mse.append(float(torch.sum(torch.abs(error**2)) / mask_sum))
-            rmse.append(mse[-1] ** 0.5)
+            mae.extend(
+                list((torch.sum(torch.abs(error), dim=[1, 2, 3]) / mask_sum).numpy())
+            )
+            mse.extend(
+                list(
+                    (torch.sum(torch.abs(error**2), dim=[1, 2, 3]) / mask_sum).numpy()
+                )
+            )
 
-            lat_weighted_mae.append(
-                float(torch.sum(torch.abs(error) * self.lat_weights) / mask_sum)
+            lat_weighted_mae.extend(
+                list(
+                    (
+                        torch.sum(torch.abs(error) * self.lat_weights, dim=[1, 2, 3])
+                        / mask_sum
+                    ).numpy()
+                )
             )
-            lat_weighted_mse.append(
-                float(torch.sum(torch.abs(error**2) * self.lat_weights) / mask_sum)
+            lat_weighted_mse.extend(
+                list(
+                    (
+                        torch.sum(
+                            torch.abs(error**2) * self.lat_weights, dim=[1, 2, 3]
+                        )
+                        / mask_sum
+                    ).numpy()
+                )
             )
-            lat_weighted_rmse.append(lat_weighted_mse[-1] ** 0.5)
+
+        rmse = list(map(lambda x: x**0.5, mse))
+        lat_weighted_rmse = list(map(lambda x: x**0.5, lat_weighted_mse))
 
         results = {
-            "mae": np.mean(mae),
-            "mse": np.mean(mse),
-            "rmse": np.mean(rmse),
-            "lat_weighted_mae": np.mean(lat_weighted_mae),
-            "lat_weighted_mse": np.mean(lat_weighted_mse),
-            "lat_weighted_rmse": np.mean(lat_weighted_rmse),
+            "mean.mae": np.mean(mae),
+            "std.mae": np.std(mae),
+            "mean.mse": np.mean(mse),
+            "std.mse": np.std(mse),
+            "mean.rmse": np.mean(rmse),
+            "std.rmse": np.std(rmse),
+            "mean.lat_weighted_mae": np.mean(lat_weighted_mae),
+            "std.lat_weighted_mae": np.std(lat_weighted_mae),
+            "mean.lat_weighted_mse": np.mean(lat_weighted_mse),
+            "std.lat_weighted_mse": np.std(lat_weighted_mse),
+            "mean.lat_weighted_rmse": np.mean(lat_weighted_rmse),
+            "std.lat_weighted_rmse": np.std(lat_weighted_rmse),
         }
         self.write_result_to_file(results)
 
     def write_result_to_file(self, results):
-        with open(self.results_file_path, "w+") as f:
-            f.write(f"{self.autoregression_steps} Autoregression Steps\n")
+        with open(self.results_file_path, "w+") as csvfile:
+            csv_writer = csv.writer(
+                csvfile, delimiter=";", quotechar='"', quoting=csv.QUOTE_MINIMAL
+            )
+            csv_writer.writerow(["autoregression_steps", "metric", "mean/std", "value"])
             for key, value in results.items():
-                f.write(f"{key}: {value}\n")
+                name_split = key.split(".")
+                csv_writer.writerow(
+                    [self.autoregression_steps, name_split[-1], name_split[0], value]
+                )
 
     def load_model(self, path: os.PathLike | str):
         logger.info("Loading Model")

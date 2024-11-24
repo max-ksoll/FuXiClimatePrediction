@@ -58,15 +58,16 @@ class ModelEvaluator:
             x = x.cuda()
             model_out = self.model(x, None).cpu()
             out_last_timestep = model_out[:, -1]
-            error = last_timestep - out_last_timestep
 
+            error = last_timestep - out_last_timestep
+            error = torch.nan_to_num(error, nan=0.0)
+            print(f"error NaN after masking: {torch.isnan(error).any()}")
             # Maske für alle Werte die nicht NaN sind ist True
             mask = ~torch.isnan(error)
             print(f"Mask NaN: {torch.isnan(mask).any()}")
             print(f"Mask sum: {mask.sum()}, Mask shape: {mask.shape}")
 
             # setze alle NaN Werte auf 0
-            error *= mask
             mask_sum = mask.sum()
 
             mae.append(float(torch.sum(torch.abs(error)) / mask_sum))

@@ -59,6 +59,8 @@ class ModelEvaluator:
             error = last_timestep - out_last_timestep
 
             mae.append(float(torch.sum(torch.abs(error) * mask) / mask.sum()))
+            has_nan = torch.sum(torch.isnan(torch.abs(error) * mask))
+            print(has_nan)
             mse.append(float(torch.sum(torch.abs(error**2) * mask) / mask.sum()))
             rmse.append(mse[-1] ** 0.5)
 

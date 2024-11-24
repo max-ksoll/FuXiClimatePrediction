@@ -78,10 +78,7 @@ class ModelEvaluator:
                 (torch.sum(torch.abs(error), dim=[2, 3]) / mask_sum_vars).numpy().T
             )
             if mae_vars is not None:
-                mae_vars = np.append(
-                    mae_vars,
-                    mae_per_var,
-                )
+                mae_vars = np.append(mae_vars, mae_per_var, axis=1)
             else:
                 mae_vars = mae_per_var
 
@@ -89,10 +86,7 @@ class ModelEvaluator:
                 (torch.sum(torch.abs(error**2), dim=[2, 3]) / mask_sum_vars).numpy().T
             )
             if mse_vars is not None:
-                mse_vars = np.append(
-                    mse_vars,
-                    mse_per_var,
-                )
+                mse_vars = np.append(mse_vars, mse_per_var, axis=1)
             else:
                 mse_vars = mse_per_var
 
@@ -125,8 +119,7 @@ class ModelEvaluator:
             )
             if lat_weighted_mae_vars is not None:
                 lat_weighted_mae_vars = np.append(
-                    lat_weighted_mae_vars,
-                    lat_weighted_mae_per_var,
+                    lat_weighted_mae_vars, lat_weighted_mae_per_var, axis=1
                 )
             else:
                 lat_weighted_mae_vars = lat_weighted_mae_per_var
@@ -141,8 +134,7 @@ class ModelEvaluator:
             )
             if lat_weighted_mse_vars is not None:
                 lat_weighted_mse_vars = np.append(
-                    lat_weighted_mse_vars,
-                    lat_weighted_mse_per_var,
+                    lat_weighted_mse_vars, lat_weighted_mse_per_var, axis=1
                 )
             else:
                 lat_weighted_mse_vars = lat_weighted_mse_per_var

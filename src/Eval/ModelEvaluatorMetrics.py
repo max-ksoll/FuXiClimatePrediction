@@ -54,7 +54,8 @@ class ModelEvaluator:
             last_timestep = x[:, -1]
             mask = ~torch.isnan(last_timestep)
 
-            out_last_timestep = self.model(x, None)[:, -1]
+            x = x.cuda()
+            out_last_timestep = self.model(x, None)[:, -1].cpu()
             error = last_timestep - out_last_timestep
 
             mae.append(float(torch.sum(torch.abs(error) * mask) / mask.sum()))

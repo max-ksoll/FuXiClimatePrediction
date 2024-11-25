@@ -19,8 +19,8 @@ export CARTOPY_DIR="/gpfs/projects/ehpc03/max/cartopy"
 export MODULE_PATH="/gpfs/projects/ehpc03/max/FuXiClimatePrediction"
 
 export MODEL_FILE="/gpfs/projects/ehpc03/max/models/epoch=531-step=74573.ckpt"
-export DATA_PATH="/gpfs/projects/ehpc03/max/data/1958_2014.zarr"
-export MEAN_DATA_PATH="/gpfs/projects/ehpc03/max/data/mean_1958_2014.zarr"
+export DATA_PATH="/gpfs/projects/ehpc03/max/data/2006_2014.zarr"
+export MEAN_DATA_PATH="/gpfs/projects/ehpc03/max/data/mean_2006_2014.zarr"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/metrics"
 export BATCH_SIZE="16"
 

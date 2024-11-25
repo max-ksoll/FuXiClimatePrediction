@@ -200,7 +200,8 @@ class ModelEvaluator:
                     "mean/std",
                     "variable",
                     "level",
-                    "lat_weighted" "value",
+                    "lat_weighted",
+                    "value",
                 ]
             )
             for key, value in results.items():

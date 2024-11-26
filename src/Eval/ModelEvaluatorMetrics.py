@@ -56,7 +56,6 @@ class ModelEvaluator:
 
             x = x.cuda()
             model_out = self.model(x, None).cpu()
-            print(f"{model_out.shape=}, {x.shape=}")
             out_last_timestep = model_out[:, -1]
 
             error = last_timestep - out_last_timestep

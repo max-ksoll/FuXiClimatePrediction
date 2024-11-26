@@ -235,7 +235,9 @@ if __name__ == "__main__":
     output_path = os.environ["OUTPUT_PATH"]
     batch_size = int(os.environ["BATCH_SIZE"])
 
-    dataset = FuXiDataset(data_path, mean_data_path)
+    dataset = FuXiDataset(
+        data_path, mean_data_path, max_autoregression_steps=autoregression_steps
+    )
     dataloader = DataLoader(
         dataset,
         **get_dataloader_params(batch_size),

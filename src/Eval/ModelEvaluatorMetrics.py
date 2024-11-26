@@ -52,15 +52,11 @@ class ModelEvaluator:
         lat_weighted_mse_vars = None
 
         for x in iter(self.dataset):
-            print(f"{x.shape=}")
             last_timestep = x[:, -1]
-            print(f"{last_timestep.shape=}")
 
             x = x.cuda()
             model_out = self.model(x, None).cpu()
-            print(f"{model_out.shape}")
             out_last_timestep = model_out[:, -1]
-            print(f"{out_last_timestep.shape=}")
 
             error = last_timestep - out_last_timestep
             mask = ~torch.isnan(error)
@@ -143,7 +139,6 @@ class ModelEvaluator:
             else:
                 lat_weighted_mse_vars = lat_weighted_mse_per_var
 
-        print(f"{mae=}")
         rmse = list(map(lambda x: x**0.5, mse))
         lat_weighted_rmse = list(map(lambda x: x**0.5, lat_weighted_mse))
 
@@ -228,7 +223,7 @@ class ModelEvaluator:
         logger.info("Loading Model")
         self.model = FuXi.load_from_checkpoint(path)
         self.model.eval()
-        self.model.autoregression_steps = self.autoregression_steps + 2
+        self.model.autoregression_steps = self.autoregression_steps
 
 
 if __name__ == "__main__":

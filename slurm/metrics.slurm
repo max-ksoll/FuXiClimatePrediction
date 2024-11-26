@@ -9,7 +9,7 @@
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
 #SBATCH --account=ehpc03             # Slurm Konto
-#SBATCH --array=1-24%4
+#SBATCH --array=1-60%4
 
 # Laden der Module und Umgebungsvariablen
 module load mkl intel impi hdf5 python cuda cudnn

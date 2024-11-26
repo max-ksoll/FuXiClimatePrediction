@@ -2,7 +2,7 @@
 #SBATCH --job-name=FuXi_Eval         # Jobname
 #SBATCH --nodes=1                    # Anzahl der Knoten
 #SBATCH --ntasks=4                   # Anzahl der Aufgaben
-#SBATCH --cpus-per-task=80            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
+#SBATCH --cpus-per-task=20            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
 #SBATCH --gres=gpu:4                 # Anzahl der GPUs pro Knoten
 #SBATCH --time=12:00:00              # Laufzeit (hh:mm:ss)
 #SBATCH --output=logs/%j.out         # Standard Output und Error Log

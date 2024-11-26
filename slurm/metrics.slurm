@@ -9,7 +9,7 @@
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
 #SBATCH --account=ehpc03             # Slurm Konto
-#SBATCH --array=1-60%4
+#SBATCH --array=0-3
 
 # Laden der Module und Umgebungsvariablen
 module load mkl intel impi hdf5 python cuda cudnn
@@ -24,6 +24,7 @@ export MEAN_DATA_PATH="/gpfs/projects/ehpc03/max/data/mean_2006_2014.zarr"
 export OUTPUT_PATH="/gpfs/projects/ehpc03/max/metrics"
 export BATCH_SIZE="16"
 
-export AUTOREGRESSION_STEPS=$SLURM_ARRAY_TASK_ID
+AUTOREGRESSION_VALUES=(1 3 5 10)
+export AUTOREGRESSION_STEPS=${AUTOREGRESSION_VALUES[$SLURM_ARRAY_TASK_ID]}
 
 srun python /gpfs/projects/ehpc03/max/FuXiClimatePrediction/src/Eval/ModelEvaluatorMetrics.py

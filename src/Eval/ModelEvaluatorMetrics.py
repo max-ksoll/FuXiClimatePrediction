@@ -40,11 +40,11 @@ class ModelEvaluator:
 
     @torch.no_grad()
     def evaluate(self):
-        mae = []
-        mse = []
+        mae = np.array([])
+        mse = np.array([])
 
-        lat_weighted_mae = []
-        lat_weighted_mse = []
+        lat_weighted_mae = np.array([])
+        lat_weighted_mse = np.array([])
 
         mae_vars = None
         mse_vars = None
@@ -58,62 +58,55 @@ class ModelEvaluator:
             model_out = self.model(x, None).cpu()
             out_last_timestep = model_out[:, -1]
 
-            error = last_timestep - out_last_timestep
-            mask = ~torch.isnan(error)
+            last_timestep = self.dataset.dataset.denormalize(last_timestep)
+            out_last_timestep = self.dataset.dataset.denormalize(out_last_timestep)
+
+            abs_error = torch.abs(last_timestep - out_last_timestep)
+            mask = ~torch.isnan(abs_error)
+
             mask_sum = mask.sum(dim=[1, 2, 3])
             mask_sum_vars = mask.sum(dim=[2, 3])
-            error = torch.nan_to_num(error, nan=0.0)
 
-            mae.extend(
-                list((torch.sum(torch.abs(error), dim=[1, 2, 3]) / mask_sum).numpy())
+            abs_error = torch.nan_to_num(abs_error, nan=0.0)
+
+            abs_error_sqr = abs_error**2
+            abs_error_sqr_lat = abs_error_sqr * self.lat_weights
+
+            mae = np.append(
+                mae, (torch.sum(abs_error, dim=[1, 2, 3]) / mask_sum).numpy()
             )
 
-            mse.extend(
-                list(
-                    (torch.sum(torch.abs(error**2), dim=[1, 2, 3]) / mask_sum).numpy()
-                )
+            mse = np.append(
+                mse, (torch.sum(abs_error_sqr, dim=[1, 2, 3]) / mask_sum).numpy()
             )
 
-            mae_per_var = (
-                (torch.sum(torch.abs(error), dim=[2, 3]) / mask_sum_vars).numpy().T
-            )
+            mae_per_var = (torch.sum(abs_error, dim=[2, 3]) / mask_sum_vars).numpy().T
             if mae_vars is not None:
                 mae_vars = np.append(mae_vars, mae_per_var, axis=1)
             else:
                 mae_vars = mae_per_var
 
             mse_per_var = (
-                (torch.sum(torch.abs(error**2), dim=[2, 3]) / mask_sum_vars).numpy().T
+                (torch.sum(abs_error_sqr, dim=[2, 3]) / mask_sum_vars).numpy().T
             )
             if mse_vars is not None:
                 mse_vars = np.append(mse_vars, mse_per_var, axis=1)
             else:
                 mse_vars = mse_per_var
 
-            lat_weighted_mae.extend(
-                list(
-                    (
-                        torch.sum(torch.abs(error) * self.lat_weights, dim=[1, 2, 3])
-                        / mask_sum
-                    ).numpy()
-                )
+            lat_weighted_mae = np.append(
+                lat_weighted_mae,
+                (
+                    torch.sum(abs_error * self.lat_weights, dim=[1, 2, 3]) / mask_sum
+                ).numpy(),
             )
-            lat_weighted_mse.extend(
-                list(
-                    (
-                        torch.sum(
-                            torch.abs(error**2) * self.lat_weights, dim=[1, 2, 3]
-                        )
-                        / mask_sum
-                    ).numpy()
-                )
+            lat_weighted_mse = np.append(
+                lat_weighted_mse,
+                (torch.sum(abs_error_sqr_lat, dim=[1, 2, 3]) / mask_sum).numpy(),
             )
 
             lat_weighted_mae_per_var = (
-                (
-                    torch.sum(torch.abs(error) * self.lat_weights, dim=[2, 3])
-                    / mask_sum_vars
-                )
+                (torch.sum(abs_error * self.lat_weights, dim=[2, 3]) / mask_sum_vars)
                 .numpy()
                 .T
             )
@@ -125,12 +118,7 @@ class ModelEvaluator:
                 lat_weighted_mae_vars = lat_weighted_mae_per_var
 
             lat_weighted_mse_per_var = (
-                (
-                    torch.sum(torch.abs(error**2) * self.lat_weights, dim=[2, 3])
-                    / mask_sum_vars
-                )
-                .numpy()
-                .T
+                (torch.sum(abs_error_sqr_lat, dim=[2, 3]) / mask_sum_vars).numpy().T
             )
             if lat_weighted_mse_vars is not None:
                 lat_weighted_mse_vars = np.append(
@@ -139,8 +127,8 @@ class ModelEvaluator:
             else:
                 lat_weighted_mse_vars = lat_weighted_mse_per_var
 
-        rmse = list(map(lambda x: x**0.5, mse))
-        lat_weighted_rmse = list(map(lambda x: x**0.5, lat_weighted_mse))
+        rmse = mse**0.5
+        lat_weighted_rmse = lat_weighted_mse**0.5
 
         results = {
             "mean.all.-1.mae": np.mean(mae),

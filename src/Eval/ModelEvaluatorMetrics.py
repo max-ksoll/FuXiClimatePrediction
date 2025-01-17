@@ -58,8 +58,8 @@ class ModelEvaluator:
             model_out = self.model(x, None).cpu()
             out_last_timestep = model_out[:, -1]
 
-            last_timestep = self.dataset.dataset.denormalize(last_timestep)
-            out_last_timestep = self.dataset.dataset.denormalize(out_last_timestep)
+            # last_timestep = self.dataset.dataset.denormalize(last_timestep)
+            # out_last_timestep = self.dataset.dataset.denormalize(out_last_timestep)
 
             abs_error = torch.abs(last_timestep - out_last_timestep)
             mask = ~torch.isnan(abs_error)

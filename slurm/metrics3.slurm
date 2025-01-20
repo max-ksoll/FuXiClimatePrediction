@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=FuXi_Eval         # Jobname
+#SBATCH --job-name=FuXi_Eval_${SLURM_ARRAY_TASK_ID}         # Jobname
 #SBATCH --nodes=1                    # Anzahl der Knoten
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
 #SBATCH --cpus-per-task=20            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen
@@ -9,7 +9,7 @@
 #SBATCH --error=logs/%j.err          # Error Log
 #SBATCH --qos=acc_ehpc               # Quality of Service
 #SBATCH --account=ehpc03             # Slurm Konto
-#SBATCH --array=61-90%4
+#SBATCH --array=61-90%1
 
 # Laden der Module und Umgebungsvariablen
 module load mkl intel impi hdf5 python cuda cudnn

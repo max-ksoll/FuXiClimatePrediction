@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=FuXi_Eval         # Jobname
+#SBATCH --job-name=FuXi_Eval_${SLURM_ARRAY_TASK_ID}         # Jobname
 #SBATCH --nodes=1                    # Anzahl der Knoten
 #SBATCH --ntasks=1                   # Anzahl der Aufgaben
 #SBATCH --cpus-per-task=20            # Anzahl der CPUs pro Aufgabe - funktioniert wohl nicht, mal schauen

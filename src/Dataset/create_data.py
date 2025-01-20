@@ -286,8 +286,8 @@ class DataBuilder:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    start_year = 1958
-    end_year = 1960
+    start_year = 2006
+    end_year = 2024
     data_dir = "/Users/ksoll/git/FuXiClimatePrediction/data"
 
     builder = DataBuilder(data_dir, start_year, end_year)
